@@ -100,7 +100,6 @@ class GameState {
 
   uint64_t Hash() const noexcept {
     // not implemented
-    assert(false);
     return 0;
   }
 

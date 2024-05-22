@@ -82,8 +82,21 @@ int main(int argc, const char** argv) {
       float temperature = TEMPERATURE_START;
       int turn;
       std::vector<std::unique_ptr<Algorithm::Context>> contexts;
+      int valid_move_count;
 
       for (turn = 0; !stop && !game.End(); turn++) {
+        // check if no valid move
+        auto valid_moves = game.Valid_moves();
+        valid_move_count = 0;
+        for (int i = 0; i < Shadow::NUM_ACTIONS; i++) {
+          if (valid_moves[i]) {
+            valid_move_count++;
+          }
+        }
+        if (valid_move_count == 0) {
+          break;
+        }
+
         // capped is used in playout cap randomization
         bool capped = rand() < PLAYOUT_CAP_PERCENT;
 
@@ -91,21 +104,10 @@ int main(int argc, const char** argv) {
                           (temperature - TEMPERATURE_END) +
                       TEMPERATURE_END;
 
-        auto start_ts = high_resolution_clock::now();
-
         auto context = algorithm.compute(game, *evaluators[evaluator_id]);
         context->step(capped ? PLAYOUT_CAP_NUM : PLAYOUT_NUM,
                       /*root_noise_enabled=*/!capped);
         auto action = context->select_move(temperature);
-
-        if constexpr (DEBUG_SHOW_ACTIONS_PER_TURN) {
-          auto duration = duration_cast<milliseconds>(
-                              high_resolution_clock::now() - start_ts)
-                              .count();
-          std::cout << "Turn " << turn << ", cost=" << duration << "ms"
-                    << ", action=" << game.action_to_string(action)
-                    << std::endl;
-        }
 
         game.Move(action);
 
@@ -122,11 +124,17 @@ int main(int argc, const char** argv) {
         break;
       }
 
-      float score = game.Score();
-
       if (contexts.empty()) {
         std::cout << "No context to save." << std::endl;
         continue;
+      }
+
+      float score;
+      
+      if (valid_move_count == 0) {
+        score = game.Current_player() == 0 ? 0.0f : 1.0f;
+      } else {
+        score = game.Score();
       }
 
       int n = contexts.size();
@@ -140,9 +148,12 @@ int main(int argc, const char** argv) {
       at::Tensor values = torch::zeros({n * kSymmetry, 2}, torch::kFloat);
       for (int i = 0; i < n; i++) {
         auto& context = contexts[i];
-        context->game->Canonicalize(
-            canonical[i * kSymmetry].mutable_data_ptr<float>());
-        context->mcts.set_probs(policy[i * kSymmetry].mutable_data_ptr<float>(),
+        context->game->Canonicalize(canonical.mutable_data_ptr<float>() +
+                                    i * kSymmetry * Shadow::CANONICAL_SHAPE[0] *
+                                        Shadow::CANONICAL_SHAPE[1] *
+                                        Shadow::CANONICAL_SHAPE[2]);
+        context->mcts.set_probs(policy.mutable_data_ptr<float>() +
+                                    i * kSymmetry * Shadow::NUM_ACTIONS,
                                 1.0f);
         values[i * kSymmetry][context->game->Current_player()] = score;
         values[i * kSymmetry][!context->game->Current_player()] = 1.0f - score;

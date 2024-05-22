@@ -128,7 +128,7 @@ class MCTS {
       leaf->Move(current_->move);
     }
 
-    if (current_->n == 0) {
+    if (current_->n == 0 && !current_->ended) {
       current_->player = leaf->Current_player();
       current_->ended = leaf->End();
       if (current_->ended) {
@@ -147,16 +147,15 @@ class MCTS {
 
   void process_result(const float* pi, size_t size_pi, const float* v,
                       bool root_noise_enabled = false) {
-    ValueType value(v[current_->player], v[!current_->player]);
+    ValueType value(current_->value);
 
-    if (current_->ended) {
-      value = current_->value;
-    } else {
+    if (!current_->ended) {
+      value = ValueType(v[current_->player], v[!current_->player]);
       // Rescale pi based on valid moves.
       std::vector<float> scaled(size_pi, 0);
       float sum = 0;
       for (auto& c : current_->children) {
-        sum += pi[c.move];
+                sum += pi[c.move];
       }
       // TODO: maybe reconsider logic here
       if (sum > 1e-7f) {
@@ -320,9 +319,9 @@ class MCTS {
 
  public:
   Node root_ = Node{};
+  Node* current_;
 
  private:
-  Node* current_;
   std::vector<Node*> path_{};
   float epsilon_;
   float root_policy_temp_;
@@ -365,6 +364,11 @@ class Algorithm {
     void step_singlespec(int iterations, bool root_noise_enabled) {
       for (int iter = 0; iter < iterations; iter++) {
         auto leaf = mcts.find_leaf(*game);
+
+        if(mcts.current_->ended) {
+          mcts.process_result(nullptr, 0, nullptr, root_noise_enabled);
+          continue;
+        }
 
         evaluator->evaluate(
             std::bind(&GameState::Canonicalize, *leaf, std::placeholders::_1),

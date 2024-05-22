@@ -14,7 +14,7 @@ class DummyEvaluator : public EvaluatorBase {
     auto pi = std::make_unique<float[]>(pi_size);
     for (int i = 0; i < v_size; i++) v[i] = 1.0 / v_size;
     for (int i = 0; i < pi_size; i++) pi[i] = 1.0 / pi_size;
-    process_result(v.get(), pi.get());
+    process_result(pi.get(), v.get());
   }
   void evaluateN(
       int N, std::function<void(float*)>* games,
