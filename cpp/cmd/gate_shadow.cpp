@@ -18,7 +18,7 @@ int main(int argc, const char** argv) {
   bool OUTPUT_BEST = false;
   bool OUTPUT_DATA = false;
   bool USE_TWO_GPU = false;
-  int THREAD_COUNT = 28;
+  int THREAD_COUNT = 32;
   std::string OUTPUT_BEST_FILE = "best_model.txt";
   std::string OUTPUT_DATA_FILE = "gating_data.txt";
 

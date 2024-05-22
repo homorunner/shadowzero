@@ -40,8 +40,8 @@ TRAIN_SAMPLE_RATE = 1  # Note: If the game has a high number of symetries genera
 
 # To decide on the following numbers, I would advise graphing the equation: scalar*(1+beta*(((iter+1)/scalar)**alpha-1)/alpha)
 WINDOW_SIZE_ALPHA = 0.5  # This decides how fast the curve flattens to a max
-WINDOW_SIZE_BETA = 0.7  # This decides the rough overall slope.
-WINDOW_SIZE_SCALAR = 6  # This ends up being approximately first time history doesn't grow
+WINDOW_SIZE_BETA = 0.7   # This decides the rough overall slope.
+WINDOW_SIZE_SCALAR = 4   # This ends up being approximately first time history doesn't grow
 
 iteration = args.iteration
 create_new = args.createnew

@@ -12,7 +12,7 @@ constexpr float TEMPERATURE_START = 1.0f;
 constexpr float TEMPERATURE_END = 0.2f;
 constexpr float TEMPERATURE_LAMBDA = -0.01f;
 
-constexpr int WORKER_THREADS = 28;
+constexpr int WORKER_THREADS = 32;
 constexpr int GPU_EVALUATOR_COUNT = 1;
 constexpr int CPU_EVALUATOR_COUNT = 0;
 
