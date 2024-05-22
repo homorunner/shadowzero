@@ -125,20 +125,8 @@ class MCTS {
       }
       current_ = current_->best_child(cpuct_, fpu_reduction);
 
-#ifdef DEBUG_MCTS_PATH
-      std::cout << GameState::action_to_string(current_->move, current->player)
-                << " ";
-#endif
-
       leaf->Move(current_->move);
     }
-
-#ifdef DEBUG_MCTS_PATH
-    if (leaf->End()) {
-      std::cout << "Score: " << leaf->Score();
-    }
-    std::cout << std::endl;
-#endif
 
     if (current_->n == 0) {
       current_->player = leaf->Current_player();
@@ -159,7 +147,7 @@ class MCTS {
 
   void process_result(const float* pi, size_t size_pi, const float* v,
                       bool root_noise_enabled = false) {
-    ValueType value(v[0], v[1]);
+    ValueType value(v[current_->player], v[!current_->player]);
 
     if (current_->ended) {
       value = current_->value;
@@ -308,7 +296,7 @@ class MCTS {
     static std::mt19937 re{rd()};
     auto choice = dist(re);
     auto sum = 0.0f;
-    for (int m = 0; m < p.size(); ++m) {
+    for (size_t m = 0; m < p.size(); ++m) {
       sum += p[m];
       if (sum > choice) {
         return m;
@@ -316,13 +304,12 @@ class MCTS {
     }
     // Due to floating point error we didn't pick a move.
     // Pick the last valid move.
-    for (int m = p.size() - 1; m >= 0; --m) {
+    for (size_t m = p.size() - 1; m >= 0; --m) {
       if (p[m] > 0) {
         return m;
       }
     }
-    assert(false);
-    return 0;
+    __builtin_unreachable();
   }
 
  private:
@@ -500,8 +487,7 @@ class Algorithm {
         auto counts = specs[i]->counts_map();
         auto root_value = specs[i]->root_value();
         printf("Action: [%s], Winrate:  %.4f\n",
-               GameState::action_to_string(counts.begin()->second,
-                                           game->Current_player())
+               game->action_to_string(counts.begin()->second)
                    .c_str(),
                root_value);
       }
@@ -511,7 +497,7 @@ class Algorithm {
       for (auto iter = counts.rbegin(); show_count && iter != counts.rend();
            iter++, show_count--) {
         printf("[%s]: %d , ",
-               GameState::action_to_string(iter->second, game->Current_player())
+               game->action_to_string(iter->second)
                    .c_str(),
                iter->first);
       }

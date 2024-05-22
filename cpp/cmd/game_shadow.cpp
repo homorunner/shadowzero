@@ -16,7 +16,7 @@ void interactive(const char* model) {
     auto valid_moves = game->Valid_moves();
     for (int i = 0; i < game->Num_actions(); i++) {
       if (valid_moves[i]) {
-        std::cout << Shadow::action_to_string(i, game->Current_player()) << " ";
+        std::cout << game->action_to_string(i) << " ";
       }
     }
     Shadow::ActionType action;
@@ -52,10 +52,11 @@ void interactive(const char* model) {
         continue;
       } else if (move == "load") {
         game = loadGame("game.txt", history_moves, history,
-                        Shadow::string_to_action);
+                        std::bind(&Shadow::GameState::string_to_action,
+                                  game.get(), std::placeholders::_1));
         goto start;
       } else {
-        action = Shadow::string_to_action(move, game->Current_player());
+        action = game->string_to_action(move);
         if (action < 0 || action >= game->Num_actions()) {
           continue;
         }

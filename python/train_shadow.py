@@ -31,7 +31,8 @@ LOSS_C_V = 1.6   # coefficient of value loss
 
 WIDTH = 4
 HEIGHT = 4
-INPUT_SIZE = (32, WIDTH, HEIGHT)
+INPUT_SIZE = (25, WIDTH, HEIGHT)
+EXTRA_SIZE = 8
 V_SIZE = 2
 PI_SIZE = 2048
 
@@ -40,8 +41,8 @@ TRAIN_SAMPLE_RATE = 1  # Note: If the game has a high number of symetries genera
 
 # To decide on the following numbers, I would advise graphing the equation: scalar*(1+beta*(((iter+1)/scalar)**alpha-1)/alpha)
 WINDOW_SIZE_ALPHA = 0.5  # This decides how fast the curve flattens to a max
-WINDOW_SIZE_BETA = 0.7   # This decides the rough overall slope.
-WINDOW_SIZE_SCALAR = 4   # This ends up being approximately first time history doesn't grow
+WINDOW_SIZE_BETA = 0.6   # This decides the rough overall slope.
+WINDOW_SIZE_SCALAR = 5   # This ends up being approximately first time history doesn't grow
 
 iteration = args.iteration
 create_new = args.createnew
@@ -53,7 +54,6 @@ def checkpoint_filepath():
 NNArgs = namedtuple(
     "NNArgs",
     [
-        "input_size",
         "v_size",
         "pi_size",
         "num_channels",
@@ -109,7 +109,9 @@ class NNArch(nn.Module):
     def __init__(self, args):
         super(NNArch, self).__init__()
 
-        in_channels, in_x, in_y = args.input_size
+        in_channels, in_x, in_y = INPUT_SIZE
+        if EXTRA_SIZE:
+            in_channels -= 1
 
         self.layers = []
         for i in range(args.depth):
@@ -128,7 +130,7 @@ class NNArch(nn.Module):
         self.v_bn = nn.BatchNorm2d(32)
         self.v_relu = nn.Mish(inplace=True)
         self.v_flatten = nn.Flatten()
-        self.v_fc1 = nn.Linear(32 * in_x * in_y, 256)
+        self.v_fc1 = nn.Linear(32 * in_x * in_y + EXTRA_SIZE, 256)
         self.v_fc1_relu = nn.Mish(inplace=True)
         self.v_fc2 = nn.Linear(256, args.v_size)
         self.v_softmax = nn.LogSoftmax(1)
@@ -136,17 +138,21 @@ class NNArch(nn.Module):
         self.pi_bn = nn.BatchNorm2d(32)
         self.pi_relu = nn.Mish(inplace=True)
         self.pi_flatten = nn.Flatten()
-        self.pi_fc1 = nn.Linear(in_x * in_y * 32, args.pi_size)
+        self.pi_fc1 = nn.Linear(32 * in_x * in_y + EXTRA_SIZE, args.pi_size)
         self.pi_softmax = nn.LogSoftmax(1)
 
     # s = batch_size * num_channels * board_x * board_y
     def forward(self, s):
+        s, l = torch.split(s, [INPUT_SIZE[0]-1, 1], dim=1)
+        l = torch.flatten(l, start_dim=1)[:, :EXTRA_SIZE]
+
         s = self.conv_layers(s)
 
         v = self.v_conv(s)
         v = self.v_bn(v)
         v = self.v_relu(v)
         v = self.v_flatten(v)
+        v = torch.cat((v, l), 1)
         v = self.v_fc1(v)
         v = self.v_fc1_relu(v)
         v = self.v_fc2(v)
@@ -156,6 +162,7 @@ class NNArch(nn.Module):
         pi = self.pi_bn(pi)
         pi = self.pi_relu(pi)
         pi = self.pi_flatten(pi)
+        pi = torch.cat((pi, l), 1)
         pi = self.pi_fc1(pi)
         pi = self.pi_softmax(pi)
 
@@ -436,7 +443,6 @@ if __name__ == "__main__":
         print("Creating new network...")
         nn = create_init_net(
             NNArgs(
-                input_size=INPUT_SIZE,
                 v_size=V_SIZE,
                 pi_size=PI_SIZE,
                 num_channels=NN_CHANNELS,

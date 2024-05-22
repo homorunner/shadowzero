@@ -103,7 +103,7 @@ int main(int argc, const char** argv) {
                               high_resolution_clock::now() - start_ts)
                               .count();
           std::cout << "Turn " << turn << ", cost=" << duration << "ms"
-                    << ", action=" << Shadow::action_to_string(action)
+                    << ", action=" << game.action_to_string(action)
                     << std::endl;
         }
 
@@ -144,8 +144,8 @@ int main(int argc, const char** argv) {
             canonical[i * kSymmetry].mutable_data_ptr<float>());
         context->mcts.set_probs(policy[i * kSymmetry].mutable_data_ptr<float>(),
                                 1.0f);
-        values[i * kSymmetry][0] = score;
-        values[i * kSymmetry][1] = 1.0f - score;
+        values[i * kSymmetry][context->game->Current_player()] = score;
+        values[i * kSymmetry][!context->game->Current_player()] = 1.0f - score;
 
         // Shadow::create_symmetry_boards(
         //     canonical[i * kSymmetry + 1].mutable_data_ptr<float>(),

@@ -103,7 +103,7 @@ int main(int argc, const char** argv) {
 
               if constexpr (DEBUG_SHOW_ACTIONS_PER_TURN) {
                 std::cout << "Turn " << turn
-                          << ", action=" << Shadow::action_to_string(action)
+                          << ", action=" << game.action_to_string(action)
                           << std::endl;
               }
               if (DEBUG_SHOW_GAMEBOARD) {

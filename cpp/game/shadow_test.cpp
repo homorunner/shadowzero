@@ -13,12 +13,12 @@ TEST(GameShadow, TestInitState) {
 1234 5678
 .... ....
 .... ....
-abcd efgh
+hgfe dcba
 
 abcd efgh
 .... ....
 .... ....
-1234 5678
+8765 4321
 Player: 0
 Shadow: V
 )");
@@ -37,18 +37,18 @@ Shadow: V
 TEST(GameShadow, TestFirstStep) {
   Shadow::GameState game;
 
-  game.Move(string_to_action("15d"));
+  game.Move(game.string_to_action("15d"));
 
   EXPECT_EQ('\n' + game.ToString(), R"(
 .123 .567
 4... 8...
 .... ....
-abcd efgh
+hgfe dcba
 
 abcd efgh
 .... ....
 .... ....
-1234 5678
+8765 4321
 Player: 1
 Shadow: V
 )");
@@ -67,18 +67,18 @@ Shadow: V
 TEST(GameShadow, TestFirstStep2) {
   Shadow::GameState game;
 
-  game.Move(string_to_action("5ad"));
+  game.Move(game.string_to_action("5ad"));
 
   EXPECT_EQ('\n' + game.ToString(), R"(
 1234 .567
 .... 8...
 .... ....
-abcd efgh
+hgfe dcba
 
 .abc efgh
 d... ....
 .... ....
-1234 5678
+8765 4321
 Player: 1
 Shadow: V
 )");
@@ -97,19 +97,19 @@ Shadow: V
 TEST(GameShadow, TestMovePiece) {
   Shadow::GameState game;
 
-  game.Move(string_to_action("15d", game.Current_player()));
-  game.Move(string_to_action("1eu2", game.Current_player()));
+  game.Move(game.string_to_action("15d"));
+  game.Move(game.string_to_action("8du2"));
 
   EXPECT_EQ('\n' + game.ToString(), R"(
 .123 5678
-4... e...
+4... d...
 .... ....
-abcd .fgh
+hgfe .cba
 
 abcd efgh
-1... ....
+8... ....
 .... ....
-.234 5678
+.765 4321
 Player: 0
 Shadow: V
 )");
@@ -118,162 +118,227 @@ Shadow: V
 TEST(GameShadow, TestCapturePiece) {
   Shadow::GameState game;
 
-  game.Move(string_to_action("15d", game.Current_player()));
-  game.Move(string_to_action("3gul2", game.Current_player()));
+  game.Move(game.string_to_action("15d"));
+  game.Move(game.string_to_action("6bul2"));
 
   EXPECT_EQ('\n' + game.ToString(), R"(
 .123 .567
-4... e...
+4... d...
 .... ....
-abcd fg.h
+hgfe cb.a
 
 abcd efgh
-1... ....
+8... ....
 .... ....
-23.4 5678
+76.5 4321
 Player: 0
 Shadow: V
 )");
+
+  auto valid_moves = game.Valid_moves();
+  int count = 0;
+  for (auto m : valid_moves) {
+    count += m;
+  }
+  EXPECT_EQ(count, 168);
 }
 
 TEST(GameShadow, TestCapturePiece2) {
   Shadow::GameState game;
 
-  game.Move(string_to_action("15d", game.Current_player()));
-  game.Move(string_to_action("3gul2", game.Current_player()));
-  game.Move(string_to_action("7bdl", game.Current_player()));
+  game.Move(game.string_to_action("15d"));
+  game.Move(game.string_to_action("6bul2"));
+  game.Move(game.string_to_action("7bdl"));
 
   EXPECT_EQ('\n' + game.ToString(), R"(
 .123 .56.
-4... e.7.
+4... d.7.
 .... ....
-abcd fg.h
+hgfe cb.a
 
 a.bc efgh
 d... ....
 .... ....
-12.3 5678
+76.5 4321
 Player: 1
 Shadow: V
 )");
+
+  auto valid_moves = game.Valid_moves();
+  int count = 0;
+  for (auto m : valid_moves) {
+    count += m;
+  }
+  EXPECT_EQ(count, 168);
 }
 
 TEST(GameShadow, TestValidMove) {
   Shadow::GameState game;
 
-  game.Move(string_to_action("15d", game.Current_player()));
-  game.Move(string_to_action("3gul2", game.Current_player()));
-  game.Move(string_to_action("7bdl", game.Current_player()));
+  game.Move(game.string_to_action("15d"));
+  game.Move(game.string_to_action("6bul2"));
+  game.Move(game.string_to_action("7bdl"));
 
   auto valid_moves = game.Valid_moves();
-  EXPECT_TRUE(valid_moves[string_to_action("52u2", game.Current_player())]);
-  EXPECT_FALSE(valid_moves[string_to_action("51u2", game.Current_player())]); // can not push two piece at a time
+  EXPECT_TRUE(valid_moves[game.string_to_action("36u2")]);
+  EXPECT_FALSE(valid_moves[game.string_to_action(
+      "37u2")]);  // can not push two piece at a time
 
-  EXPECT_TRUE(valid_moves[string_to_action("72lu", game.Current_player())]);
-  EXPECT_FALSE(valid_moves[string_to_action("71lu", game.Current_player())]); // can not move outside
-  EXPECT_FALSE(valid_moves[string_to_action("72lu2", game.Current_player())]); // can not move outside
-  EXPECT_FALSE(valid_moves[string_to_action("63lu2", game.Current_player())]); // can not move outside
+  EXPECT_TRUE(valid_moves[game.string_to_action("63lu")]);
+  EXPECT_FALSE(
+      valid_moves[game.string_to_action("73lu")]);  // can not move outside
+  EXPECT_FALSE(
+      valid_moves[game.string_to_action("53lu2")]);  // can not move outside
+  EXPECT_FALSE(
+      valid_moves[game.string_to_action("73lu2")]);  // can not move outside
 
-  EXPECT_TRUE(valid_moves[string_to_action("3hl", game.Current_player())]);
-  EXPECT_FALSE(valid_moves[string_to_action("36l", game.Current_player())]); // can not push friendly piece
-  EXPECT_FALSE(valid_moves[string_to_action("23l", game.Current_player())]); // can not move the same board
-  EXPECT_FALSE(valid_moves[string_to_action("2bu", game.Current_player())]); // can not move board of the same shadow
+  EXPECT_TRUE(valid_moves[game.string_to_action("5al")]);
+  EXPECT_FALSE(valid_moves[game.string_to_action(
+      "5bl")]);                                 // can not push friendly piece
+  EXPECT_EQ(-1, game.string_to_action("56u"));  // can not move the same board
+  EXPECT_EQ(-1, game.string_to_action(
+                    "2du"));  // can not move board of the same shadow
 }
 
+TEST(GameShadow, TestValidMove2) {
+  Shadow::GameState game;
+
+  game.Move(game.string_to_action("8ddl2"));
+  game.Move(game.string_to_action("5bul2"));
+
+  EXPECT_EQ('\n' + game.ToString(), R"(
+1234 567.
+.... d...
+.... ....
+hgfe cb.a
+
+abc. efgh
+.8.. ....
+.d.. ....
+765. 4321
+Player: 0
+Shadow: V
+)");
+
+  auto valid_moves = game.Valid_moves();
+  EXPECT_FALSE(valid_moves[game.string_to_action("7bd")]);
+  EXPECT_FALSE(valid_moves[game.string_to_action("7bd2")]);
+  EXPECT_TRUE(valid_moves[game.string_to_action("7adr")]);
+  EXPECT_TRUE(valid_moves[game.string_to_action("7cdl")]);
+}
 
 TEST(GameShadow, TestShadow) {
   Shadow::GameState game;
 
-  game.Move(string_to_action("15d", game.Current_player()));
-  game.Move(string_to_action("15u", game.Current_player()));
-  game.Move(string_to_action("48u", game.Current_player()));
-  game.Move(string_to_action("15d", game.Current_player()));
-  game.Move(string_to_action("15d", game.Current_player()));
-  game.Move(string_to_action("15u", game.Current_player()));
+  game.Move(game.string_to_action("15d"));
+  game.Move(game.string_to_action("15u"));
+  game.Move(game.string_to_action("48u"));
+  game.Move(game.string_to_action("15d"));
+  game.Move(game.string_to_action("15d"));
+  game.Move(game.string_to_action("15u"));
 
   EXPECT_EQ('\n' + game.ToString(), R"(
 .123 .567
 4... 8...
 .... ....
-abcd efgh
+hgfe dcba
 
 abcd efgh
 .... ....
-1... 5...
-.234 .678
+...8 ...4
+765. 321.
 Player: 0
 Shadow: H
 )");
 
   auto valid_moves = game.Valid_moves();
-  EXPECT_TRUE(valid_moves[string_to_action("1ad2", game.Current_player())]); // now 1 and a are in different shadow
-  EXPECT_TRUE(valid_moves[string_to_action("1ed2", game.Current_player())]);
-  EXPECT_FALSE(valid_moves[string_to_action("15d2", game.Current_player())]); // now 1 and 5 are in same shadow
-  EXPECT_FALSE(valid_moves[string_to_action("51d2", game.Current_player())]);
+  EXPECT_TRUE(valid_moves[game.string_to_action(
+      "1ad2")]);  // now 1 and a are in different shadow
+  EXPECT_TRUE(valid_moves[game.string_to_action("1ed2")]);
+  EXPECT_EQ(-1,
+            game.string_to_action("15d2"));  // now 1 and 5 are in same shadow
+  EXPECT_EQ(-1, game.string_to_action("51d2"));
 }
-
 
 TEST(GameShadow, TestShadow2) {
   Shadow::GameState game;
 
-  game.Move(string_to_action("15d", game.Current_player()));
-  game.Move(string_to_action("15u", game.Current_player()));
-  game.Move(string_to_action("48u", game.Current_player()));
-  game.Move(string_to_action("15d", game.Current_player()));
-  game.Move(string_to_action("15d", game.Current_player()));
-  game.Move(string_to_action("15u", game.Current_player()));
-  game.Move(string_to_action("1ad", game.Current_player()));
+  game.Move(game.string_to_action("15d"));
+  game.Move(game.string_to_action("15u"));
+  game.Move(game.string_to_action("48u"));
+  game.Move(game.string_to_action("15d"));
+  game.Move(game.string_to_action("15d"));
+  game.Move(game.string_to_action("15u"));
+  game.Move(game.string_to_action("1ad"));
 
   EXPECT_EQ('\n' + game.ToString(), R"(
 ..12 .567
 34.. 8...
 .... ....
-abcd efgh
+hgfe dcba
 
 .abc efgh
 d... ....
-1... 5...
-.234 .678
+...8 ...4
+765. 321.
 Player: 1
 Shadow: H
 )");
 
   auto valid_moves = game.Valid_moves();
-  EXPECT_TRUE(valid_moves[string_to_action("2au", game.Current_player())]);
-  EXPECT_TRUE(valid_moves[string_to_action("2eu", game.Current_player())]);
-  EXPECT_TRUE(valid_moves[string_to_action("8du", game.Current_player())]);
-  EXPECT_FALSE(valid_moves[string_to_action("15r", game.Current_player())]);
-  EXPECT_FALSE(valid_moves[string_to_action("1au", game.Current_player())]);
-  EXPECT_FALSE(valid_moves[string_to_action("1eu", game.Current_player())]);
+  EXPECT_TRUE(valid_moves[game.string_to_action("2au")]);
+  EXPECT_TRUE(valid_moves[game.string_to_action("2eu")]);
+  EXPECT_TRUE(valid_moves[game.string_to_action("8du")]);
+  EXPECT_TRUE(valid_moves[game.string_to_action("8hu")]);
+  EXPECT_EQ(-1, game.string_to_action("15r"));
+  EXPECT_EQ(-1, game.string_to_action("72u"));
 }
 
 TEST(GameShadow, TestShadow3) {
   Shadow::GameState game;
 
-  game.Move(string_to_action("15d", game.Current_player()));
-  game.Move(string_to_action("15u", game.Current_player()));
-  game.Move(string_to_action("48u", game.Current_player()));
-  game.Move(string_to_action("15d", game.Current_player()));
-  game.Move(string_to_action("15d", game.Current_player()));
-  game.Move(string_to_action("15u", game.Current_player()));
-  game.Move(string_to_action("1ad", game.Current_player()));
-  game.Move(string_to_action("6eu", game.Current_player()));
-  game.Move(string_to_action("4du", game.Current_player()));
-  game.Move(string_to_action("6eu", game.Current_player()));
-  game.Move(string_to_action("1ad", game.Current_player()));
-  game.Move(string_to_action("5ed2", game.Current_player()));
+  game.Move(game.string_to_action("15d"));
+  game.Move(game.string_to_action("15u"));
+  game.Move(game.string_to_action("48u"));
+  game.Move(game.string_to_action("15d"));
+  game.Move(game.string_to_action("15d"));
+  game.Move(game.string_to_action("15u"));
+  game.Move(game.string_to_action("1ad"));
+  game.Move(game.string_to_action("3du"));
+  game.Move(game.string_to_action("4du"));
+  game.Move(game.string_to_action("4du"));
+  game.Move(game.string_to_action("1ad"));
+  game.Move(game.string_to_action("4dd2"));
 
   EXPECT_EQ('\n' + game.ToString(), R"(
 ..12 5678
 34.. ....
 .... ....
-abcd efgh
+hgfe dcba
 
 .abc efgh
 d... ....
-1... 5...
-.234 .678
+...8 ...4
+765. 321.
 Player: 0
 Shadow: V
 )");
+
+  auto valid_moves = game.Valid_moves();
+  int count = 0;
+  for (auto m : valid_moves) {
+    count += m;
+  }
+  EXPECT_EQ(count, 190);
+}
+
+TEST(GameShadow, TestGameEnd) {
+  Shadow::GameState game;
+
+  EXPECT_FALSE(game.End());
+
+  // game.Move(game.string_to_action("..."));
+
+  // EXPECT_TRUE(game.End());
+  // EXPECT_EQ(game.Score(), 1.0f);
 }

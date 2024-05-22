@@ -22,7 +22,7 @@ int main(int argc, const char** argv) {
   auto duration = duration_cast<milliseconds>(end - start).count();
   std::cout << "Time: " << duration << "ms\nIteration: " << NumIterations
             << "\nBest move: "
-            << Shadow::action_to_string(best_move, game.Current_player())
+            << game.action_to_string(best_move)
             << "\nBest value: " << best_value << std::endl;
   return 0;
 }
