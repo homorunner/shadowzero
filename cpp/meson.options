@@ -1,0 +1,1 @@
+option('use_cuda', type: 'boolean', value: true)

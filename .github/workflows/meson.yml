@@ -1,0 +1,129 @@
+on:
+  push:
+    branches: [ main, dev ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  cmake_version: 3.28.3
+  libtorch_version: 2.2.2  # although 2.3.0 has been released, it brokes on windows
+  python_version: 3.12
+  cpp_compiler_linux: g++
+
+jobs:
+  build-on-ubuntu:
+    runs-on: ubuntu-24.04
+    steps:
+    - name: Prepare environment
+      run: |
+            sudo apt-get install g++ -y && g++ --version
+            sudo apt-get remove cmake -y
+            wget -O cmake.sh https://github.com/Kitware/CMake/releases/download/v${{ env.cmake_version }}/cmake-${{ env.cmake_version }}-linux-x86_64.sh
+            mkdir -p /opt/cmake
+            sudo chmod +x cmake.sh && sudo ./cmake.sh --skip-license --prefix=/opt/cmake
+            echo "/opt/cmake/bin" >> $GITHUB_PATH
+      shell: bash
+
+    - uses: actions/checkout@main
+
+    - name: Setup Python
+      uses: actions/setup-python@main
+      with:
+        python-version: ${{ env.python_version }}
+        check-latest: true
+  
+    - name: Setup libtorch-cpu
+      working-directory: cpp
+      run: |
+            mkdir -p subprojects; cd subprojects
+            curl -o libtorch.zip https://download.pytorch.org/libtorch/cpu/libtorch-cxx11-abi-shared-with-deps-${{ env.libtorch_version }}%2Bcpu.zip
+            unzip -qq libtorch.zip
+            echo "Downloaded libtorch, build version: $(cat ./libtorch/build-version), build hash: $(cat ./libtorch/build-hash)"
+            echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$(pwd)/libtorch/lib" >> $GITHUB_ENV
+            echo "LIBRARY_PATH=$LIBRARY_PATH:$(pwd)/libtorch/lib" >> $GITHUB_ENV
+            echo "CMAKE_PREFIX_PATH=$CMAKE_PREFIX_PATH:$(pwd)/libtorch" >> $GITHUB_ENV
+
+    - name: Setup mason
+      run: |
+            python -m pip install --upgrade pip && pip --version
+            pip install meson && meson --version
+            sudo apt-get install ninja-build -y
+
+    - name: Setup gtest
+      working-directory: cpp
+      run: |
+            meson wrap install gtest
+
+    - name: Build and Test with Meson
+      working-directory: cpp
+      run: |
+            meson setup -Dcpp_args="-ffast-math -march=native -Wno-unknown-pragmas" -Duse_cuda=false build --buildtype=release
+            meson compile -C build
+            meson test --print-errorlogs --repeat=3 -C build
+      shell: bash
+      env:
+       CXX:  ${{ env.cpp_compiler_linux }}
+
+    - name: Upload meson-logs
+      uses: actions/upload-artifact@main
+      if: always()
+      with:
+        name: meson-logs-linux
+        path: |
+              cpp/build/meson-logs/meson-log.txt
+              cpp/build/meson-logs/testlog.txt
+
+  build-on-windows:
+    runs-on: windows-latest
+    steps:
+    - name: Prepare environment
+      uses: actions/checkout@main
+    
+    - name: Setup Python
+      uses: actions/setup-python@main
+      with:
+        python-version: ${{ env.python_version }}
+        check-latest: true
+  
+    - name: Setup mason
+      run: |
+            python -m pip install --upgrade pip
+            pip install meson && meson --version
+            choco install -y ninja
+
+    - name: Setup libtorch-cpu
+      working-directory: cpp
+      run: |
+            mkdir -p subprojects; cd subprojects
+            curl -o libtorch.zip https://download.pytorch.org/libtorch/cpu/libtorch-win-shared-with-deps-${{ env.libtorch_version }}%2Bcpu.zip
+            unzip -qq libtorch.zip
+            echo "Downloaded libtorch, build version: $(cat .\libtorch\build-version), build hash: $(cat .\libtorch\build-hash)"
+            echo "CMAKE_PREFIX_PATH=$(pwd)\libtorch;${CMAKE_PREFIX_PATH}" >> $env:GITHUB_ENV
+
+    - name: Setup gtest
+      working-directory: cpp
+      run: meson wrap install gtest
+
+    # Currently in 2023, libtorch needs msvc to work. So we compile everything with msvc.
+    # This action enables msvc environments automatically for github workflow.
+    - name: Prepare MSV
+      uses: ilammy/msvc-dev-cmd@v1.13.0
+      with:
+        arch: x64
+
+    - name: Build and Test with Meson
+      working-directory: cpp
+      run: |
+            meson setup build -Duse_cuda=false --buildtype=release
+            meson compile -C build
+            meson test --print-errorlogs --repeat=3 -C build
+
+    - name: Upload meson-logs
+      uses: actions/upload-artifact@main
+      if: always()
+      with:
+        name: meson-logs-windows
+        path: |
+              cpp/build/meson-logs/meson-log.txt
+              cpp/build/meson-logs/testlog.txt
+
