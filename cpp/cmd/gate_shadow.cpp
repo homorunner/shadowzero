@@ -88,8 +88,21 @@ int main(int argc, const char** argv) {
             float temperature = ALPHAZERO_TEMPERATURE_START;
             int turn;
             bool first_play_evaluator = round % 2;
+            int valid_move_count;
 
             for (turn = 0; !game.End(); turn++) {
+              // check if no valid move
+              auto valid_moves = game.Valid_moves();
+              valid_move_count = 0;
+              for (int i = 0; i < Shadow::NUM_ACTIONS; i++) {
+                if (valid_moves[i]) {
+                  valid_move_count++;
+                }
+              }
+              if (valid_move_count == 0) {
+                break;
+              }
+
               temperature = std::exp(ALPHAZERO_TEMPERATURE_LAMBDA * turn) *
                                 (temperature - ALPHAZERO_TEMPERATURE_END) +
                             ALPHAZERO_TEMPERATURE_END;
@@ -99,6 +112,12 @@ int main(int argc, const char** argv) {
                   *evaluator[game.Current_player() ^ first_play_evaluator]);
               context->step(ALPHAZERO_NUM_PLAYOUT, false);
               auto action = context->select_move(temperature);
+
+              if (action < 0 || action >= Shadow::NUM_ACTIONS || !valid_moves[action]) {
+                std::cout << "Invalid move " << action << std::endl;
+                break;
+              }
+
               game.Move(action);
 
               if constexpr (DEBUG_SHOW_ACTIONS_PER_TURN) {
@@ -111,7 +130,13 @@ int main(int argc, const char** argv) {
               }
             }
 
-            float score = game.Score();
+            float score;
+            
+            if (valid_move_count == 0) {
+              score = game.Current_player() == 0 ? 0.0f : 1.0f;
+            } else {
+              score = game.Score();
+            }
 
             if (score == 0.5f) {
               std::cout << "Draw" << std::endl;
@@ -120,6 +145,7 @@ int main(int argc, const char** argv) {
             } else {
               std::cout << "Winner is X" << std::endl;
             }
+
             mutex.lock();
             win_count[first_play_evaluator] += score;
             win_count[!first_play_evaluator] += 1 - score;
@@ -135,6 +161,7 @@ int main(int argc, const char** argv) {
               total_score[1][0] += score;
             }
             mutex.unlock();
+            
             std::cout << "Win count: " << win_count[0] << " - " << win_count[1]
                       << std::endl;
           }

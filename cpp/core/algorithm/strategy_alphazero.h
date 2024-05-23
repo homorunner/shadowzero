@@ -308,6 +308,7 @@ class MCTS {
         return m;
       }
     }
+    assert(false);
     __builtin_unreachable();
   }
 

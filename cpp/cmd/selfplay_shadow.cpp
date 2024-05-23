@@ -109,6 +109,12 @@ int main(int argc, const char** argv) {
                       /*root_noise_enabled=*/!capped);
         auto action = context->select_move(temperature);
 
+        if (action < 0 || action >= Shadow::NUM_ACTIONS || !valid_moves[action]) {
+          std::cout << "Invalid move " << action << std::endl;
+          stop = true;
+          break;
+        }
+
         game.Move(action);
 
         if (!capped) {

@@ -52,7 +52,8 @@ using ActionType = Shadow::ActionType;
 class GameState {
  private:
   bool current_player;
-  int8_t round;
+  bool __unused;
+  int16_t round;
   int8_t piece[2][16];  // player_id, piece_id. piece 0~7 is moveable, piece
                         // 8~15 is shadow.
 
@@ -204,15 +205,23 @@ class GameState {
     int a = action % 64 / 8,
         b = pos_b_index[(round / 6) % 2][a >= 4][action % 8], dir = action / 64;
 
+    assert(a >= 0 && a < 8);
+    assert(b >= 0 && b < 16);
+    assert(dir >= 0 && dir < 16);
+
     auto& piece_a = piece[current_player][a];
+    assert(piece_a >= 0 && piece_a < 16);
     auto ax = piece_a % 4;
     auto ay = piece_a / 4;
     piece_a = (ax + dirx[dir]) + (ay + diry[dir]) * 4;
+    assert(piece_a >= 0 && piece_a < 16);
 
     auto& piece_b = piece[current_player][b];
+    assert(piece_b >= 0 && piece_b < 16);
     auto bx = piece_b % 4;
     auto by = piece_b / 4;
     piece_b = (bx + dirx[dir]) + (by + diry[dir]) * 4;
+    assert(piece_b >= 0 && piece_b < 16);
 
     int op = (3 - b / 4) * 4;
     for (int i = op; i < op + 4; i++) {
