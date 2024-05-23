@@ -34,7 +34,7 @@ HEIGHT = 4
 INPUT_SIZE = (25, WIDTH, HEIGHT)
 EXTRA_SIZE = 8
 V_SIZE = 2
-PI_SIZE = 2048
+PI_SIZE = 1024
 
 TRAIN_BATCH_SIZE = 1024  # This generally should be as big as can fit on your gpu.
 TRAIN_SAMPLE_RATE = 1  # Note: If the game has a high number of symetries generated, this number should likely get lowered.
