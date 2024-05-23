@@ -7,7 +7,7 @@
 using namespace Shadow;
 
 TEST(GameShadow, TestInitState) {
-  Shadow::GameState game;
+  GameState game;
 
   EXPECT_EQ('\n' + game.ToString(), R"(
 1234 5678
@@ -35,7 +35,7 @@ Shadow: V
 }
 
 TEST(GameShadow, TestFirstStep) {
-  Shadow::GameState game;
+  GameState game;
 
   game.Move(game.string_to_action("15d"));
 
@@ -65,7 +65,7 @@ Shadow: V
 }
 
 TEST(GameShadow, TestFirstStep2) {
-  Shadow::GameState game;
+  GameState game;
 
   game.Move(game.string_to_action("5ad"));
 
@@ -95,7 +95,7 @@ Shadow: V
 }
 
 TEST(GameShadow, TestMovePiece) {
-  Shadow::GameState game;
+  GameState game;
 
   game.Move(game.string_to_action("15d"));
   game.Move(game.string_to_action("8du2"));
@@ -116,7 +116,7 @@ Shadow: V
 }
 
 TEST(GameShadow, TestCapturePiece) {
-  Shadow::GameState game;
+  GameState game;
 
   game.Move(game.string_to_action("15d"));
   game.Move(game.string_to_action("6bul2"));
@@ -144,7 +144,7 @@ Shadow: V
 }
 
 TEST(GameShadow, TestCapturePiece2) {
-  Shadow::GameState game;
+  GameState game;
 
   game.Move(game.string_to_action("15d"));
   game.Move(game.string_to_action("6bul2"));
@@ -173,7 +173,7 @@ Shadow: V
 }
 
 TEST(GameShadow, TestValidMove) {
-  Shadow::GameState game;
+  GameState game;
 
   game.Move(game.string_to_action("15d"));
   game.Move(game.string_to_action("6bul2"));
@@ -201,7 +201,7 @@ TEST(GameShadow, TestValidMove) {
 }
 
 TEST(GameShadow, TestValidMove2) {
-  Shadow::GameState game;
+  GameState game;
 
   game.Move(game.string_to_action("8ddl2"));
   game.Move(game.string_to_action("5bul2"));
@@ -228,7 +228,7 @@ Shadow: V
 }
 
 TEST(GameShadow, TestShadow) {
-  Shadow::GameState game;
+  GameState game;
 
   game.Move(game.string_to_action("15d"));
   game.Move(game.string_to_action("15u"));
@@ -261,7 +261,7 @@ Shadow: H
 }
 
 TEST(GameShadow, TestShadow2) {
-  Shadow::GameState game;
+  GameState game;
 
   game.Move(game.string_to_action("15d"));
   game.Move(game.string_to_action("15u"));
@@ -295,7 +295,7 @@ Shadow: H
 }
 
 TEST(GameShadow, TestShadow3) {
-  Shadow::GameState game;
+  GameState game;
 
   game.Move(game.string_to_action("15d"));
   game.Move(game.string_to_action("15u"));
@@ -333,12 +333,129 @@ Shadow: V
 }
 
 TEST(GameShadow, TestGameEnd) {
-  Shadow::GameState game;
+  bool current_player = 0;
+  int16_t round = 10;
+  int8_t pieces[2][16] = {
+      {0, CAPTURED, CAPTURED, CAPTURED, 0, CAPTURED, CAPTURED, CAPTURED, 0,
+       CAPTURED, CAPTURED, CAPTURED, 0, CAPTURED, CAPTURED, CAPTURED},
+      {0, CAPTURED, CAPTURED, CAPTURED, 0, CAPTURED, CAPTURED, CAPTURED, 0,
+       CAPTURED, CAPTURED, CAPTURED, 0, CAPTURED, CAPTURED, CAPTURED},
+  };
+  GameState game(current_player, round, pieces);
 
   EXPECT_FALSE(game.End());
+  game.Move(game.string_to_action("1adr"));
+  EXPECT_FALSE(game.End());
+  game.Move(game.string_to_action("5eul"));
+  EXPECT_FALSE(game.End());
+  game.Move(game.string_to_action("5adr2"));
+  EXPECT_TRUE(game.End());
+  
+  EXPECT_EQ(game.Score(), 1.0f);
+}
 
-  // game.Move(game.string_to_action("..."));
+std::string FromCanonical(const float* canonical) {
+  const float(&in)[CANONICAL_SHAPE[0]][CANONICAL_SHAPE[1]][CANONICAL_SHAPE[2]] =
+      *reinterpret_cast<const float(*)[CANONICAL_SHAPE[0]][CANONICAL_SHAPE[1]]
+                                      [CANONICAL_SHAPE[2]]>(canonical);
+  // get round and current player
+  int16_t round = 0;
+  if (in[24][0][1]) round++;
+  if (in[24][0][2]) round++;
+  if (in[24][0][3]) round++;
+  if (in[24][0][4]) round++;
+  if (in[24][0][5]) round++;
+  bool current_player = round % 2;
+  bool hshadow = in[24][0][0];
+  if (hshadow) round += 6;
 
-  // EXPECT_TRUE(game.End());
-  // EXPECT_EQ(game.Score(), 1.0f);
+  // get board
+  bool board[2][4][4][4];
+  for (int i = 0; i < 4; i++) {
+    for (int j = 0; j < 4; j++) {
+      for (int k = 0; k < 4; k++) {
+        board[current_player][i][j][k] = in[16 + i][j][k];
+        board[!current_player][i][j][k] = in[20 + i][j][k];
+      }
+    }
+  }
+
+  int index[2][4] = {0};
+  int8_t pieces[2][16];
+  for (int p = 0; p < 2; p++) {
+    for (int i = 0; i < 4; i++) {
+      for (int x = 0; x < 4; x++) {
+        for (int y = 0; y < 4; y++) {
+          if (board[p][i][x][y]) {
+            pieces[p][i * 4 + (index[p][i]++)] = x * 4 + y;
+          }
+        }
+      }
+    }
+  }
+
+  float capture_count[2] = {0};
+  for (int p = 0; p < 2; p++) {
+    for (int i = 0; i < 4; i++) {
+      while (index[p][i] < 3) {
+        pieces[p][i * 4 + (index[p][i]++)] = CAPTURED;
+        capture_count[p]++;
+      }
+    }
+  }
+
+  if (capture_count[0] != in[24][0][6]) {
+    return "capture_count[0] != in[24][0][6]";
+  }
+  if (capture_count[1] != in[24][0][7]) {
+    return "capture_count[1] != in[24][0][7]";
+  }
+
+  for (int i = 0; i < 2; i++) {
+    for (int j = 0; j < 16; j += 4) {
+      sort4(pieces[i] + j);
+    }
+  }
+
+  GameState game(current_player, round, pieces);
+
+  for (int i = 0; i < 16; i++) {
+    for (int j = 0; j < 4; j++) {
+      for (int k = 0; k < 4; k++) {
+        if (in[i][j][k] == 1.f) {
+          if (pieces[current_player][i] != (j * 4 + k)) {
+            return "pieces[current_player][i] != (j * 4 + k)";
+          }
+        } else if (in[i][j][k] != 0.f) {
+          return "in[i][j][k] != 0.f && in[i][j][k] != 1.f";
+        }
+      }
+    }
+  }
+
+  return game.ToString();
+}
+
+TEST(GameShadow, TestCanonical) {
+  GameState game;
+
+  for (int i = 0; i < 10; i++) {
+    auto valid_moves = game.Valid_moves();
+    int action = -1;
+    for (int i = 0; i < NUM_ACTIONS; i++) {
+      if (valid_moves[i]) {
+        action = i;
+        break;
+      }
+    }
+    if (action == -1) break;
+    game.Move(action);
+
+    float canonical[CANONICAL_SHAPE[0] * CANONICAL_SHAPE[1] *
+                    CANONICAL_SHAPE[2]] = {0};
+    game.Canonicalize(canonical);
+
+    auto fromCanonical = FromCanonical(canonical);
+    EXPECT_EQ(fromCanonical, game.ToString());
+  }
 }

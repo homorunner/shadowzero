@@ -58,6 +58,21 @@ class GameState {
                         // 8~15 is shadow.
 
  public:
+  GameState() {
+    current_player = 0;
+    round = 0;
+    for (int j = 0; j < 2; j++) {
+      for (int i = 0; i < 16; i++) {
+        piece[j][i] = i % 4;
+      }
+    }
+  }
+
+  GameState(bool current_player, int16_t round, int8_t piece[2][16])
+      : current_player(current_player), round(round) {
+    std::memcpy(this->piece, piece, sizeof(this->piece));
+  }
+
   std::string action_to_string(const ActionType action) {
     return std::string(1, pos_a_name[action % 64 / 8]) +
            pos_b_name[(round / 6) % 2][(action % 64 / 8) >= 4][action % 8] +
@@ -83,16 +98,6 @@ class GameState {
       }
     }
     return -1;
-  }
-
-  GameState() {
-    current_player = 0;
-    round = 0;
-    for (int j = 0; j < 2; j++) {
-      for (int i = 0; i < 16; i++) {
-        piece[j][i] = i % 4;
-      }
-    }
   }
 
   std::unique_ptr<GameState> Copy() const {
