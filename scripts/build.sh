@@ -13,12 +13,6 @@ export LIBRARY_PATH=$LIBRARY_PATH:$(pwd)/subprojects/libtorch/lib
 export CMAKE_PREFIX_PATH=$CMAKE_PREFIX_PATH:$(pwd)/subprojects/libtorch
 fi
 
-if command -v g++-14; then
-export CXX=g++-14
-elif command -v g++; then
-export CXX=g++
-fi
-
 if command -v nvcc; then
 USE_CUDA=true
 else

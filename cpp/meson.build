@@ -10,7 +10,7 @@ project(
 cc         = meson.get_compiler('cpp')
 
 if not cc.has_header('format')
-  error('C++ compiler too old, try newer compiler like g++ v14.0 or later')
+  error('C++ compiler too old, try newer compiler like g++ v13.0 or later. You may use command like "CXX=g++-13 meson build " to specify the compiler.')
 endif
 
 includes = []
