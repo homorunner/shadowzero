@@ -1006,7 +1006,7 @@ if __name__ == "__main__":
 
     players = sorted(elo_info.players)
     player_ids = [int(player[:4]) for player in players]
-    player_elos = [elo_info.elo[player] for player in players]
+    player_elos = [elo_info.elo[player] - elo_info.elo[players[0]] for player in players]
 
     plt.plot(player_ids, player_elos, label=players[0][5:], marker='o')
 

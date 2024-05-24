@@ -7,6 +7,5 @@ TRAIN_HELPER="build/trainhelper"
 
 mkdir -p $CHECKPOINT_PATH
 
-$TRAIN_HELPER model pull $CHECKPOINT_PATH
 $TRAIN_HELPER gating showelo > $ELO_OUTPUT_FILE
 cat $ELO_OUTPUT_FILE | grep -A 30 "Elos "
