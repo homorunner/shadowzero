@@ -713,14 +713,17 @@ class GameResultSummary:
         print(elo_info)
 
         print("Pairwise approx % likelihood of superiority of row over column:")
-        los_matrix = []
-        for player in real_players:
-            los_row = []
-            for player2 in real_players:
-                los = elo_info.get_approx_likelihood_of_superiority(player, player2)
-                los_row.append(f"{los*100:.2f}")
-            los_matrix.append(los_row)
-        self._print_matrix(real_players, los_matrix)
+        if len(real_players) > 100:
+            print("skipped")
+        else:
+            los_matrix = []
+            for player in real_players:
+                los_row = []
+                for player2 in real_players:
+                    los = elo_info.get_approx_likelihood_of_superiority(player, player2)
+                    los_row.append(f"{los*100:.2f}")
+                los_matrix.append(los_row)
+            self._print_matrix(real_players, los_matrix)
 
         surprise_matrix = []
         for pla1 in real_players:
