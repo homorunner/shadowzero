@@ -113,15 +113,31 @@ class NNArch(nn.Module):
         if EXTRA_SIZE:
             in_channels -= 1
 
-        self.layers = []
-        for i in range(args.depth):
-            self.layers.append(
+        layers1 = []
+        for i in range(args.depth // 2):
+            layers1.append(
                 DenseBlock(
                     in_channels + args.num_channels * i,
                     args.num_channels,
                 )
             )
-        self.conv_layers = nn.Sequential(*self.layers)
+        self.conv_layers1 = nn.Sequential(*layers1)
+
+        global_pooling_c = in_channels + args.num_channels * (args.depth // 2)
+        self.global_pooling_bn = nn.BatchNorm2d(global_pooling_c)
+        self.global_pooling_relu = nn.Mish(inplace=True)
+        self.global_pooling_fc = nn.Linear(global_pooling_c * 2 + EXTRA_SIZE, global_pooling_c)
+
+        layers2 = []
+        for i in range(args.depth // 2, args.depth):
+            layers2.append(
+                DenseBlock(
+                    in_channels + args.num_channels * i,
+                    args.num_channels,
+                )
+            )
+        self.conv_layers2 = nn.Sequential(*layers2)
+
 
         final_size = in_channels + args.num_channels * args.depth
         self.v_conv = conv1x1(final_size, 32)
@@ -146,7 +162,17 @@ class NNArch(nn.Module):
         s, l = torch.split(s, [INPUT_SIZE[0]-1, 1], dim=1)
         l = torch.flatten(l, start_dim=1)[:, :EXTRA_SIZE]
 
-        s = self.conv_layers(s)
+        s = self.conv_layers1(s)
+
+        # global pooling
+        x = self.global_pooling_bn(s)
+        x = self.global_pooling_relu(x)
+        x = x.view(-1, INPUT_SIZE[0]-1+NN_CHANNELS*(NN_DEPTH//2), INPUT_SIZE[1] * INPUT_SIZE[2])
+        y = torch.mean(x, dim=2)
+        z, _ = torch.max(x, dim=2)
+        s = s + self.global_pooling_fc(torch.cat([y, z, l], 1)).unsqueeze(-1).unsqueeze(-1)
+
+        s = self.conv_layers2(s)
 
         v = self.v_conv(s)
         v = self.v_bn(v)
