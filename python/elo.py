@@ -1008,18 +1008,22 @@ if __name__ == "__main__":
     elo_info = summary.print_elos()
 
     players = sorted(elo_info.players)
-    player_ids = [int(player[:4]) for player in players]
-    player_elos = [elo_info.elo[player] - elo_info.elo[players[0]] for player in players]
+    player_ids = [int(player[:4]) for player in players if 'baseline' not in player]
+    player_elos = [elo_info.elo[player] - elo_info.elo[players[0]] for player in players if 'baseline' not in player]
 
-    plt.plot(player_ids, player_elos, label=players[0][5:], marker='o')
+    plt.plot(player_ids, player_elos, label=players[0][5:])
 
-    # Adding titles and labels
+    baseline_ids = [player for player in players if 'baseline' in player]
+    baseline_elos = [elo_info.elo[player] - elo_info.elo[players[0]] for player in players if 'baseline' in player]
+    for i in range(len(baseline_ids)):
+        plt.hlines(y=baseline_elos[i], xmin=player_ids[0], xmax=player_ids[-1], label=baseline_ids[i], linestyles='dashed', colors='r')
+
     plt.title('Elo Rating Over Time')
     plt.xlabel('Iteration')
     plt.ylabel('Elo Rating')
 
     # Show legend
-    plt.legend()
+    plt.legend(loc='lower right')
 
     # Show grid
     plt.grid(True)
