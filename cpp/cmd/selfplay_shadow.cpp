@@ -164,15 +164,15 @@ int main(int argc, const char** argv) {
         values[i * kSymmetry][context->game->Current_player()] = score;
         values[i * kSymmetry][!context->game->Current_player()] = 1.0f - score;
 
-        // Shadow::create_symmetry_boards(
-        //     canonical[i * kSymmetry + 1].mutable_data_ptr<float>(),
-        //     canonical[i * kSymmetry].mutable_data_ptr<float>());
-        // Shadow::create_symmetry_actions(
-        //     policy[i * kSymmetry + 1].mutable_data_ptr<float>(),
-        //     policy[i * kSymmetry].mutable_data_ptr<float>());
-        // Shadow::create_symmetry_values(
-        //     values[i * kSymmetry + 1].mutable_data_ptr<float>(),
-        //     values[i * kSymmetry].mutable_data_ptr<float>());
+        context->game->create_symmetry_boards(
+            canonical[i * kSymmetry + 1].mutable_data_ptr<float>(),
+            canonical[i * kSymmetry].mutable_data_ptr<float>());
+        context->game->create_symmetry_actions(
+            policy[i * kSymmetry + 1].mutable_data_ptr<float>(),
+            policy[i * kSymmetry].mutable_data_ptr<float>());
+        context->game->create_symmetry_values(
+            values[i * kSymmetry + 1].mutable_data_ptr<float>(),
+            values[i * kSymmetry].mutable_data_ptr<float>());
       }
 
       // check for possible nan

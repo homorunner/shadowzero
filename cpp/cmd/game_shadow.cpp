@@ -60,7 +60,7 @@ void interactive(const char* model) {
         if (action < 0 || action >= game->Num_actions()) {
           continue;
         }
-        if (!game->Valid_moves()[action]) {
+        if (action != Shadow::MOVE_PASS && !game->Valid_moves()[action]) {
           std::cerr << "Invalid move." << std::endl;
           continue;
         }

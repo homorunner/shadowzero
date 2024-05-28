@@ -6,12 +6,14 @@ namespace Shadow {
 
 constexpr const int NUM_ACTIONS = 8 * 8 * 16;
 constexpr const int NUM_PLAYERS = 2;
-constexpr const int NUM_SYMMETRIES = 1;
+constexpr const int NUM_SYMMETRIES = 2;
 
 constexpr const std::array<int, 3> CANONICAL_SHAPE = {25, 4, 4};
-constexpr const int CANONICAL_EXTRA_COUNT = 8;
+constexpr const int CANONICAL_EXTRA_COUNT = 14;
 
 using ActionType = int;
+
+const ActionType MOVE_PASS = -1;
 
 const int8_t dirx[16] = {0, 1, 0, -1, 1, 1, -1, -1, 0, 2, 0, -2, 2, 2, -2, -2};
 const int8_t diry[16] = {1, 0, -1, 0, 1, -1, 1, -1, 2, 0, -2, 0, 2, -2, 2, -2};
@@ -75,12 +77,14 @@ class GameState {
   }
 
   std::string action_to_string(const ActionType action) {
+    if (action == MOVE_PASS) return "pass";
     return std::string(1, pos_a_name[action % 64 / 8]) +
            pos_b_name[(round / 12) % 2][(action % 64 / 8) >= 4][action % 8] +
            dir_name[current_player][action / 64];
   }
 
   ActionType string_to_action(const std::string& action) {
+    if (action == "pass") return MOVE_PASS;
     int a = action[0] - '1';
     int ret = a * 8;
     bool found = false;
@@ -207,8 +211,15 @@ class GameState {
   }
 
   void Move(ActionType action) {
+    if (action == MOVE_PASS) {
+      current_player = !current_player;
+      round += 1;
+      return;
+    }
+
     int a = action % 64 / 8,
-        b = pos_b_index[(round / 12) % 2][a >= 4][action % 8], dir = action / 64;
+        b = pos_b_index[(round / 12) % 2][a >= 4][action % 8],
+        dir = action / 64;
 
     assert(a >= 0 && a < 8);
     assert(b >= 0 && b < 16);
@@ -314,19 +325,18 @@ class GameState {
 
     // channel 24 is the linear vector
     // vector 0 represent the shadow direction(0: V, 1: H)
-    // vector 1..5 represent the round count to next shadow
-    // vector 6..7 represent the capture count of player 0 and player 1.
-    out[24][0][0] = (round / 12) % 2 ? 1.0f : 0.0f;
-    out[24][0][1] = round % 12 >= 2 ? 1.0f : 0.0f;
-    out[24][0][2] = round % 12 >= 4 ? 1.0f : 0.0f;
-    out[24][0][3] = round % 12 >= 6 ? 1.0f : 0.0f;
-    out[24][0][4] = round % 12 >= 8 ? 1.0f : 0.0f;
-    out[24][0][5] = round % 12 >= 10 ? 1.0f : 0.0f;
-    out[24][0][6] = capture_count[current_player];
-    out[24][0][7] = capture_count[!current_player];
+    // vector 1..11 represent the round count to next shadow
+    // vector 12..13 represent the capture count of player 0 and player 1.
+    float* linear = &out[24][0][0];
+    linear[0] = (round / 12) % 2 ? 1.0f : 0.0f;
+    for (int i = 1; i < 12; i++) {
+      linear[i] = round % 12 >= i ? 1.0f : 0.0f;
+    }
+    linear[12] = capture_count[current_player];
+    linear[13] = capture_count[!current_player];
 
     // if we add more vector, we need to update this variable
-    assert(CANONICAL_EXTRA_COUNT == 8);
+    assert(CANONICAL_EXTRA_COUNT == 14);
   }
 
   std::string ToString() const {
@@ -369,32 +379,73 @@ class GameState {
 
     return out;
   }
-};
 
-void create_symmetry_values(float* dst, const float* src) {
-  for (int i = 0; i < NUM_SYMMETRIES; i++) {
-    for (int j = 0; j < 2; j++) {
-      dst[i * 2 + j] = src[j];
+  void create_symmetry_values(float* dst, const float* src) const {
+    for (int i = 0; i < NUM_SYMMETRIES; i++) {
+      for (int j = 0; j < 2; j++) {
+        dst[i * 2 + j] = src[j];
+      }
     }
   }
-}
 
-// flip the boards horizontally
-void create_symmetry_board(float* dst, const float* src) {
-  // to be implemented
-}
+  // change board orders (a,b,c,d -> b,a,d,c)
+  void create_symmetry_board(float* dst, const float* src) const {
+    // if we change the shape, we need to update this function
+    assert(CANONICAL_SHAPE[0] == 25);
 
-// flip the actions horizontally
-void create_symmetry_action(float* dst, const float* src) {
-  // to be implemented
-}
+    float(&out)[25][4][4] = *reinterpret_cast<float(*)[25][4][4]>(dst);
+    const float(&in)[25][4][4] =
+        *reinterpret_cast<const float(*)[25][4][4]>(src);
 
-void create_symmetry_boards(float* dst, const float* src) {
-  create_symmetry_board(dst, src);
-}
+    // note that we assert the canonical board is already filled with zeros.
+    assert(out[0][0][0] == 0.0f && out[24][3][3] == 0.0f);
 
-void create_symmetry_actions(float* dst, const float* src) {
-  create_symmetry_action(dst, src);
-}
+    for (int i = 0; i < 16; i++) {
+      float* dst_ptr = &out[i ^ 4][0][0];
+      const float* src_ptr = &in[i][0][0];
+      std::memcpy(dst_ptr, src_ptr, sizeof(float) * 16);
+    }
+    for (int i = 16; i < 24; i++) {
+      float* dst_ptr = &out[i ^ 1][0][0];
+      const float* src_ptr = &in[i][0][0];
+      std::memcpy(dst_ptr, src_ptr, sizeof(float) * 16);
+    }
+    float* dst_ptr = &out[24][0][0];
+    const float* src_ptr = &in[24][0][0];
+    for (int i = 0; i < CANONICAL_EXTRA_COUNT; i++) {
+      dst_ptr[i] = src_ptr[i];
+    }
+  }
+
+  // flip the actions horizontally
+  void create_symmetry_action(float* dst, const float* src) const {
+    // if we change the shape, we need to update this function
+    assert(CANONICAL_SHAPE[0] == 25);
+
+    bool vshadow = (round / 12) % 2 == 0;
+
+    for (int dir = 0; dir < 16; dir++) {
+      for (int a = 0; a < 8; a++) {
+        for (int b = 0; b < 8; b++) {
+          int idx = dir * 64 + a * 8 + b;
+
+          int new_a = a ^ 4;
+          int new_b = vshadow ? b : b ^ 4;
+          int new_idx = dir * 64 + new_a * 8 + new_b;
+
+          dst[new_idx] = src[idx];
+        }
+      }
+    }
+  }
+
+  void create_symmetry_boards(float* dst, const float* src) const {
+    create_symmetry_board(dst, src);
+  }
+
+  void create_symmetry_actions(float* dst, const float* src) const {
+    create_symmetry_action(dst, src);
+  }
+};
 
 }  // namespace Shadow

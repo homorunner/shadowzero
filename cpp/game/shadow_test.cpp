@@ -236,6 +236,7 @@ TEST(GameShadow, TestShadow) {
   game.Move(game.string_to_action("15d"));
   game.Move(game.string_to_action("15d"));
   game.Move(game.string_to_action("15u"));
+  for (int i = 0; i < 6; i++) game.Move(MOVE_PASS);
 
   EXPECT_EQ('\n' + game.ToString(), R"(
 .123 .567
@@ -269,6 +270,7 @@ TEST(GameShadow, TestShadow2) {
   game.Move(game.string_to_action("15d"));
   game.Move(game.string_to_action("15d"));
   game.Move(game.string_to_action("15u"));
+  for (int i = 0; i < 6; i++) game.Move(MOVE_PASS);
   game.Move(game.string_to_action("1ad"));
 
   EXPECT_EQ('\n' + game.ToString(), R"(
@@ -303,12 +305,14 @@ TEST(GameShadow, TestShadow3) {
   game.Move(game.string_to_action("15d"));
   game.Move(game.string_to_action("15d"));
   game.Move(game.string_to_action("15u"));
+  for (int i = 0; i < 6; i++) game.Move(MOVE_PASS);
   game.Move(game.string_to_action("1ad"));
   game.Move(game.string_to_action("3du"));
   game.Move(game.string_to_action("4du"));
   game.Move(game.string_to_action("4du"));
   game.Move(game.string_to_action("1ad"));
   game.Move(game.string_to_action("4dd2"));
+  for (int i = 0; i < 6; i++) game.Move(MOVE_PASS);
 
   EXPECT_EQ('\n' + game.ToString(), R"(
 ..12 5678
@@ -334,7 +338,7 @@ Shadow: V
 
 TEST(GameShadow, TestGameEnd) {
   bool current_player = 0;
-  int16_t round = 10;
+  int16_t round = 22;
   int8_t pieces[2][16] = {
       {0, CAPTURED, CAPTURED, CAPTURED, 0, CAPTURED, CAPTURED, CAPTURED, 0,
        CAPTURED, CAPTURED, CAPTURED, 0, CAPTURED, CAPTURED, CAPTURED},
@@ -350,7 +354,7 @@ TEST(GameShadow, TestGameEnd) {
   EXPECT_FALSE(game.End());
   game.Move(game.string_to_action("5adr2"));
   EXPECT_TRUE(game.End());
-  
+
   EXPECT_EQ(game.Score(), 1.0f);
 }
 
@@ -360,14 +364,13 @@ std::string StringFromCanonical(const float* canonical) {
                                       [CANONICAL_SHAPE[2]]>(canonical);
   // get round and current player
   int16_t round = 0;
-  if (in[24][0][1]) round++;
-  if (in[24][0][2]) round++;
-  if (in[24][0][3]) round++;
-  if (in[24][0][4]) round++;
-  if (in[24][0][5]) round++;
+  const float* linear = &in[24][0][0];
+  for (int i = 1; i < 12; i++) {
+    if (linear[i]) round++;
+  }
   bool current_player = round % 2;
-  bool hshadow = in[24][0][0];
-  if (hshadow) round += 6;
+  bool hshadow = linear[0];
+  if (hshadow) round += 12;
 
   // get board
   bool board[2][4][4][4];
@@ -404,11 +407,11 @@ std::string StringFromCanonical(const float* canonical) {
     }
   }
 
-  if (capture_count[0] != in[24][0][6]) {
-    return "capture_count[0] != in[24][0][6]";
+  if (capture_count[current_player] != linear[13]) {
+    return "capture_count[current_player] != linear[13]";
   }
-  if (capture_count[1] != in[24][0][7]) {
-    return "capture_count[1] != in[24][0][7]";
+  if (capture_count[!current_player] != linear[14]) {
+    return "capture_count[!current_player] != linear[14]";
   }
 
   for (int i = 0; i < 2; i++) {
@@ -443,8 +446,8 @@ TEST(GameShadow, TestCanonical) {
     auto valid_moves = game.Valid_moves();
     int action = -1;
     for (int i = 0; i < NUM_ACTIONS; i++) {
-      if (valid_moves[i]) {
-        action = i;
+      if (valid_moves[37 * i % NUM_ACTIONS]) {
+        action = 37 * i % NUM_ACTIONS;
         break;
       }
     }
@@ -458,4 +461,84 @@ TEST(GameShadow, TestCanonical) {
     auto fromCanonical = StringFromCanonical(canonical);
     EXPECT_EQ(fromCanonical, game.ToString());
   }
+}
+
+TEST(GameShadow, TestSymmetry) {
+  GameState game;
+
+  float canonical[CANONICAL_SHAPE[0] * CANONICAL_SHAPE[1] *
+                  CANONICAL_SHAPE[2]] = {0};
+  game.Canonicalize(canonical);
+
+  float symmetry[1][CANONICAL_SHAPE[0] * CANONICAL_SHAPE[1] * CANONICAL_SHAPE[2]] =
+      {0};
+  game.create_symmetry_boards(&symmetry[0][0], canonical);
+
+  auto fromSymmetry = StringFromCanonical(symmetry[0]);
+  EXPECT_EQ(fromSymmetry, game.ToString());
+}
+
+TEST(GameShadow, TestSymmetry2) {
+  GameState game;
+  game.Move(game.string_to_action("1edr"));
+  game.Move(game.string_to_action("1eul"));
+
+  GameState game2;
+  game2.Move(game2.string_to_action("5adr"));
+  game2.Move(game2.string_to_action("5aul"));
+
+  float canonical[CANONICAL_SHAPE[0] * CANONICAL_SHAPE[1] *
+                  CANONICAL_SHAPE[2]] = {0};
+  game.Canonicalize(canonical);
+
+  float symmetry[1][CANONICAL_SHAPE[0] * CANONICAL_SHAPE[1] * CANONICAL_SHAPE[2]] =
+      {0};
+  game.create_symmetry_boards(&symmetry[0][0], canonical);
+
+  auto fromSymmetry = StringFromCanonical(symmetry[0]);
+  EXPECT_EQ(fromSymmetry, game2.ToString());
+}
+
+TEST(GameShadow, TestSymmetryAction) {
+  GameState game;
+  game.Move(game.string_to_action("1edr"));
+  game.Move(game.string_to_action("1eul"));
+
+  GameState game2;
+  game2.Move(game2.string_to_action("5adr"));
+  game2.Move(game2.string_to_action("5aul"));
+
+  float actions[NUM_ACTIONS] = {0};
+  for(int i = 0; i < NUM_ACTIONS; i++) {
+    actions[i] = i;
+  }
+
+  float symmetry[1][NUM_ACTIONS] = {0};
+  game.create_symmetry_actions(&symmetry[0][0], actions);
+
+  EXPECT_EQ(symmetry[0][game2.string_to_action("36d")], actions[game.string_to_action("72d")]);
+  EXPECT_EQ(symmetry[0][game2.string_to_action("8dr2")], actions[game.string_to_action("4hr2")]);
+}
+
+TEST(GameShadow, TestSymmetryAction2) {
+  GameState game;
+  game.Move(game.string_to_action("1edr"));
+  game.Move(game.string_to_action("1eul"));
+  for (int i = 0; i < 12; i++) game.Move(MOVE_PASS);
+
+  GameState game2;
+  game2.Move(game2.string_to_action("5adr"));
+  game2.Move(game2.string_to_action("5aul"));
+  for (int i = 0; i < 12; i++) game.Move(MOVE_PASS);
+
+  float actions[NUM_ACTIONS] = {0};
+  for(int i = 0; i < NUM_ACTIONS; i++) {
+    actions[i] = i;
+  }
+
+  float symmetry[1][NUM_ACTIONS] = {0};
+  game.create_symmetry_actions(&symmetry[0][0], actions);
+
+  EXPECT_EQ(symmetry[0][game2.string_to_action("3cd")], actions[game.string_to_action("7gd")]);
+  EXPECT_EQ(symmetry[0][game2.string_to_action("8dr2")], actions[game.string_to_action("4hr2")]);
 }
