@@ -9,6 +9,7 @@ constexpr const int NUM_PLAYERS = 2;
 constexpr const int NUM_SYMMETRIES = 1;
 
 constexpr const std::array<int, 3> CANONICAL_SHAPE = {25, 4, 4};
+constexpr const int CANONICAL_EXTRA_COUNT = 8;
 
 using ActionType = int;
 
@@ -75,7 +76,7 @@ class GameState {
 
   std::string action_to_string(const ActionType action) {
     return std::string(1, pos_a_name[action % 64 / 8]) +
-           pos_b_name[(round / 6) % 2][(action % 64 / 8) >= 4][action % 8] +
+           pos_b_name[(round / 12) % 2][(action % 64 / 8) >= 4][action % 8] +
            dir_name[current_player][action / 64];
   }
 
@@ -84,7 +85,7 @@ class GameState {
     int ret = a * 8;
     bool found = false;
     for (int i = 0; i < 8; i++) {
-      if (action[1] == pos_b_name[(round / 6) % 2][a >= 4][i]) {
+      if (action[1] == pos_b_name[(round / 12) % 2][a >= 4][i]) {
         ret += i;
         found = true;
         break;
@@ -115,7 +116,7 @@ class GameState {
 
   std::vector<uint8_t> Valid_moves() const {
     auto valids = std::vector<uint8_t>(NUM_ACTIONS, 0);
-    bool vshadow = (round / 6) % 2 == 0;
+    bool vshadow = (round / 12) % 2 == 0;
 
     uint8_t board[2][4][4][4] = {0};
     int8_t position[2][16];
@@ -130,7 +131,8 @@ class GameState {
     for (int p = 0; p < 2; p++) {
       for (int i = 0; i < 16; i++) {
         if (position[p][i] != CAPTURED)
-          board[p][p ? 3 - i / 4 : i / 4][position[p][i] % 4][position[p][i] / 4] = 1;
+          board[p][p ? 3 - i / 4 : i / 4][position[p][i] % 4]
+               [position[p][i] / 4] = 1;
       }
     }
 
@@ -139,10 +141,8 @@ class GameState {
       for (int a = 0; a < 8; a++) {
         for (int b = 0; b < 8; b++) {
           int board_a = a / 4;
-          int board_b = vshadow ? a < 4   ? b < 4 ? 1 : 3
-                                  : b < 4 ? 0
-                                          : 2
-                                : b / 4 + 2;
+          int board_b =
+              vshadow ? a < 4 ? (b < 4 ? 1 : 3) : (b < 4 ? 0 : 2) : b / 4 + 2;
 
           auto position_a = position[0][a];
           auto position_b = position[0][board_b * 4 + b % 4];
@@ -208,7 +208,7 @@ class GameState {
 
   void Move(ActionType action) {
     int a = action % 64 / 8,
-        b = pos_b_index[(round / 6) % 2][a >= 4][action % 8], dir = action / 64;
+        b = pos_b_index[(round / 12) % 2][a >= 4][action % 8], dir = action / 64;
 
     assert(a >= 0 && a < 8);
     assert(b >= 0 && b < 16);
@@ -280,39 +280,56 @@ class GameState {
     return false;
   }
 
-  void Canonicalize(float* storage) const {
+  void Canonicalize(float* storage) const noexcept {
+    // if we update this function (e.g. add more channels), we need to update
+    // this variable
+    assert(CANONICAL_SHAPE[0] == 25 && CANONICAL_SHAPE[1] == 4 &&
+           CANONICAL_SHAPE[2] == 4);
+
     float(&out)[CANONICAL_SHAPE[0]][CANONICAL_SHAPE[1]][CANONICAL_SHAPE[2]] =
         *reinterpret_cast<float(*)[CANONICAL_SHAPE[0]][CANONICAL_SHAPE[1]]
                                   [CANONICAL_SHAPE[2]]>(storage);
 
     float capture_count[2] = {0.0f, 0.0f};
 
+    // channel 0..15 represent each piece position of the current player
+    // channel 16..19 represent current player board 0-3
+    // channel 20..23 represent opponent player board 0-3
     for (int i = 0; i < 16; i++) {
       if (piece[current_player][i] != CAPTURED) {
         out[i][piece[current_player][i] / 4][piece[current_player][i] % 4] =
             1.0f;
-        out[16 + i / 4][piece[current_player][i] / 4][piece[current_player][i] % 4] = 1.0f;
+        out[16 + i / 4][piece[current_player][i] / 4]
+           [piece[current_player][i] % 4] = 1.0f;
       } else {
         capture_count[0] += 1.0f;
       }
       if (piece[!current_player][i] != CAPTURED) {
-        out[20 + i / 4][piece[!current_player][i] / 4][piece[!current_player][i] % 4] = 1.0f;
+        out[20 + i / 4][piece[!current_player][i] / 4]
+           [piece[!current_player][i] % 4] = 1.0f;
       } else {
         capture_count[1] += 1.0f;
       }
     }
 
-    out[24][0][0] = (round / 6) % 2 ? 1.0f : 0.0f;
-    out[24][0][1] = round % 6 >= 1 ? 1.0f : 0.0f;
-    out[24][0][2] = round % 6 >= 2 ? 1.0f : 0.0f;
-    out[24][0][3] = round % 6 >= 3 ? 1.0f : 0.0f;
-    out[24][0][4] = round % 6 >= 4 ? 1.0f : 0.0f;
-    out[24][0][5] = round % 6 >= 5 ? 1.0f : 0.0f;
-    out[24][0][6] = capture_count[0];
-    out[24][0][7] = capture_count[1];
+    // channel 24 is the linear vector
+    // vector 0 represent the shadow direction(0: V, 1: H)
+    // vector 1..5 represent the round count to next shadow
+    // vector 6..7 represent the capture count of player 0 and player 1.
+    out[24][0][0] = (round / 12) % 2 ? 1.0f : 0.0f;
+    out[24][0][1] = round % 12 >= 2 ? 1.0f : 0.0f;
+    out[24][0][2] = round % 12 >= 4 ? 1.0f : 0.0f;
+    out[24][0][3] = round % 12 >= 6 ? 1.0f : 0.0f;
+    out[24][0][4] = round % 12 >= 8 ? 1.0f : 0.0f;
+    out[24][0][5] = round % 12 >= 10 ? 1.0f : 0.0f;
+    out[24][0][6] = capture_count[current_player];
+    out[24][0][7] = capture_count[!current_player];
+
+    // if we add more vector, we need to update this variable
+    assert(CANONICAL_EXTRA_COUNT == 8);
   }
 
-  std::string ToString() const noexcept {
+  std::string ToString() const {
     std::string out;
 
     char board[8][8];
@@ -332,7 +349,8 @@ class GameState {
         if (piece[1][j] != CAPTURED) {
           int x = (15 - piece[1][j]) % 4;
           int y = (15 - piece[1][j]) / 4;
-          board[y + 4 - offset_y][x + 4 - offset_x] = (i >= 2 ? 'a' - 8 : '1') + j;
+          board[y + 4 - offset_y][x + 4 - offset_x] =
+              (i >= 2 ? 'a' - 8 : '1') + j;
         }
       }
     }
@@ -347,7 +365,7 @@ class GameState {
     }
 
     out += "Player: " + std::to_string(int(current_player)) + '\n';
-    out += "Shadow: " + std::string((round / 6) % 2 ? "H" : "V") + '\n';
+    out += "Shadow: " + std::string((round / 12) % 2 ? "H" : "V") + '\n';
 
     return out;
   }

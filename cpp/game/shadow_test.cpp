@@ -354,7 +354,7 @@ TEST(GameShadow, TestGameEnd) {
   EXPECT_EQ(game.Score(), 1.0f);
 }
 
-std::string FromCanonical(const float* canonical) {
+std::string StringFromCanonical(const float* canonical) {
   const float(&in)[CANONICAL_SHAPE[0]][CANONICAL_SHAPE[1]][CANONICAL_SHAPE[2]] =
       *reinterpret_cast<const float(*)[CANONICAL_SHAPE[0]][CANONICAL_SHAPE[1]]
                                       [CANONICAL_SHAPE[2]]>(canonical);
@@ -455,7 +455,7 @@ TEST(GameShadow, TestCanonical) {
                     CANONICAL_SHAPE[2]] = {0};
     game.Canonicalize(canonical);
 
-    auto fromCanonical = FromCanonical(canonical);
+    auto fromCanonical = StringFromCanonical(canonical);
     EXPECT_EQ(fromCanonical, game.ToString());
   }
 }
