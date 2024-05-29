@@ -32,7 +32,7 @@ LOSS_C_V = 1.6   # coefficient of value loss
 WIDTH = 4
 HEIGHT = 4
 INPUT_SIZE = (25, WIDTH, HEIGHT)
-EXTRA_SIZE = 8
+EXTRA_SIZE = 14
 V_SIZE = 2
 PI_SIZE = 1024
 
