@@ -74,10 +74,13 @@ struct Node {
   float uct(float sqrt_parent_n, float cpuct, float fpu_value) const noexcept {
     return (n == 0 ? fpu_value : q) + cpuct * policy * sqrt_parent_n / (n + 1);
   }
-  Node* best_child(float cpuct, float fpu_reduction) noexcept {
-    auto seen_policy = 0.0f;
-    for (const auto& c : children) {
+  Node* best_child(float cpuct, float fpu_reduction, bool force_playout) noexcept {
+    float seen_policy = 0.0f;
+    for (auto& c : children) {
       if (c.n > 0) {
+        if (force_playout && c.n < std::sqrt(2 * c.policy * (this->n - c.n))) {
+          return &c;
+        }
         seen_policy += c.policy;
       }
     }
@@ -108,7 +111,7 @@ class MCTS {
         root_policy_temp_(root_policy_temp),
         fpu_reduction_(fpu_reduction) {}
 
-  std::unique_ptr<GameState> find_leaf(const GameState& gs) {
+  std::unique_ptr<GameState> find_leaf(const GameState& gs, bool force_playout = false) {
     current_ = &root_;
     auto leaf = gs.Copy();
 
@@ -123,7 +126,7 @@ class MCTS {
       if (current_->n > 0 && current_->v < 0.2) {
         fpu_reduction /= 2;
       }
-      current_ = current_->best_child(cpuct_, fpu_reduction);
+      current_ = current_->best_child(cpuct_, fpu_reduction, force_playout);
 
       leaf->Move(current_->move);
     }
@@ -155,13 +158,10 @@ class MCTS {
       std::vector<float> scaled(size_pi, 0);
       float sum = 0;
       for (auto& c : current_->children) {
-                sum += pi[c.move];
+        sum += pi[c.move];
       }
-      // TODO: maybe reconsider logic here
-      if (sum > 1e-7f) {
-        for (auto& c : current_->children) {
-          scaled[c.move] = pi[c.move] / sum;
-        }
+      for (auto& c : current_->children) {
+        scaled[c.move] = pi[c.move] / sum;
       }
       if (current_ == &root_) {
         sum = 0;
@@ -169,10 +169,8 @@ class MCTS {
           scaled[c.move] = std::pow(scaled[c.move], 1.0 / root_policy_temp_);
           sum += scaled[c.move];
         }
-        if (sum > 1e-7f) {
-          for (auto& c : current_->children) {
-            scaled[c.move] = scaled[c.move] / sum;
-          }
+        for (auto& c : current_->children) {
+          scaled[c.move] = scaled[c.move] / sum;
         }
         current_->update_policy(scaled);
         if (root_noise_enabled) {
@@ -236,11 +234,45 @@ class MCTS {
     return result;
   }
 
-  std::map<int, int> counts_map() const noexcept {
-    std::map<int, int> result;
-    for (const auto& c : root_.children) {
-      result[c.n] = c.move;
+  std::vector<int> policy_pruned_counts() const noexcept {
+    std::vector<int> result(num_moves_, 0);
+    const Node* best_child = nullptr;
+    int best_child_visit = 0;
+    float sqrt_root_n = std::sqrt((float)root_.n);
+
+    for (auto& c : root_.children) {
+      if (c.n > best_child_visit) {
+        best_child_visit = c.n;
+        best_child = &c;
+      }
     }
+
+    if (best_child == nullptr) {
+      return result;
+    }
+
+    float best_child_uct = best_child->uct(sqrt_root_n, cpuct_, fpu_reduction_);
+
+    for (auto& c : root_.children) {
+      if (c.n > 0) {
+        if (&c == best_child) {
+          result[c.move] = c.n;
+        } else {
+          int visits = c.n;
+
+          int lower_bound = std::ceil(cpuct_ * c.policy * sqrt_root_n /
+                                      (best_child_uct - c.q));
+
+          result[c.move] = std::min(visits, lower_bound);
+
+          // prune visit count equal to 1
+          if (result[c.move] <= 1) {
+            result[c.move] = 0;
+          }
+        }
+      }
+    }
+
     return result;
   }
 
@@ -250,8 +282,10 @@ class MCTS {
     return probs;
   }
 
-  void set_probs(float* buffer, float temp) const noexcept {
-    auto counts = this->counts();
+  void set_probs(float* buffer, float temp,
+                 bool prune_forced_count = false) const noexcept {
+    auto counts =
+        prune_forced_count ? this->policy_pruned_counts() : this->counts();
 
     if (temp < 1e-7f) {
       auto best_moves = std::vector<int>{0};
@@ -277,12 +311,15 @@ class MCTS {
       for (int i = 0; i < num_moves_; i++) {
         buffer[i] = counts[i] / sum;
       }
-      sum = 0;
-      for (int i = 0; i < num_moves_; i++) {
-        sum += std::pow(buffer[i], 1.0f / temp);
-      }
-      for (int i = 0; i < num_moves_; i++) {
-        buffer[i] = std::pow(buffer[i], 1.0f / temp) / sum;
+
+      if (temp != 1.0f) {
+        sum = 0;
+        for (int i = 0; i < num_moves_; i++) {
+          sum += std::pow(buffer[i], 1.0f / temp);
+        }
+        for (int i = 0; i < num_moves_; i++) {
+          buffer[i] = std::pow(buffer[i], 1.0f / temp) / sum;
+        }
       }
     }
   }
@@ -354,19 +391,19 @@ class Algorithm {
       }
     }
 
-    void step(int iterations, bool root_noise_enabled = false) {
+    void step(int iterations, bool root_noise_enabled = false, bool force_playout = false) {
       if constexpr (SpecThreadCount == 0) {
-        step_singlespec(iterations, root_noise_enabled);
+        step_singlespec(iterations, root_noise_enabled, force_playout);
       } else {
         step_multispec(iterations, root_noise_enabled);
       }
     }
 
-    void step_singlespec(int iterations, bool root_noise_enabled) {
+    void step_singlespec(int iterations, bool root_noise_enabled, bool force_playout) {
       for (int iter = 0; iter < iterations; iter++) {
-        auto leaf = mcts.find_leaf(*game);
+        auto leaf = mcts.find_leaf(*game, force_playout);
 
-        if(mcts.current_->ended) {
+        if (mcts.current_->ended) {
           mcts.process_result(nullptr, 0, nullptr, root_noise_enabled);
           continue;
         }
@@ -476,7 +513,7 @@ class Algorithm {
       }
     }
 
-    void show_actions(int show_count) {
+    void show_actions(int show_count, bool move_up_cursor, bool prune_forced_count = false) {
       int specs_count = 0;
       for (int i = 0; i < SpecThreadCount; i++) {
         if (specs[i]->root_.children.empty()) {
@@ -484,26 +521,23 @@ class Algorithm {
         }
         specs_count++;
       }
-      int lines_count = specs_count + 1 + (mcts.root_children().size() > 1);
-      for (int i = 0; i < lines_count; i++) {
-        printf("\33[F");
+      if (move_up_cursor) {
+        int lines_count = specs_count + 1 + (mcts.root_children().size() > 1);
+        printf("\33[%dF", lines_count);
       }
       for (int i = 0; i < specs_count; i++) {
-        auto counts = specs[i]->counts_map();
+        auto counts = inversed_map(prune_forced_count ? specs[i]->policy_pruned_counts() : specs[i]->counts());
         auto root_value = specs[i]->root_value();
         printf("Action: [%s], Winrate:  %.4f\n",
-               game->action_to_string(counts.begin()->second)
-                   .c_str(),
+               game->action_to_string(counts.begin()->second).c_str(),
                root_value);
       }
-      auto counts = mcts.counts_map();
+      auto counts = inversed_map(prune_forced_count ? mcts.policy_pruned_counts() : mcts.counts());
       printf("Action: ");
       if (counts.size() > 1) putchar('\n');
       for (auto iter = counts.rbegin(); show_count && iter != counts.rend();
            iter++, show_count--) {
-        printf("[%s]: %d , ",
-               game->action_to_string(iter->second)
-                   .c_str(),
+        printf("[%s]: %d , ", game->action_to_string(iter->second).c_str(),
                iter->first);
       }
       auto root_value = mcts.root_value();

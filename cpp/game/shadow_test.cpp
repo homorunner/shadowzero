@@ -470,8 +470,8 @@ TEST(GameShadow, TestSymmetry) {
                   CANONICAL_SHAPE[2]] = {0};
   game.Canonicalize(canonical);
 
-  float symmetry[1][CANONICAL_SHAPE[0] * CANONICAL_SHAPE[1] * CANONICAL_SHAPE[2]] =
-      {0};
+  float symmetry[1][CANONICAL_SHAPE[0] * CANONICAL_SHAPE[1] *
+                    CANONICAL_SHAPE[2]] = {0};
   game.create_symmetry_boards(&symmetry[0][0], canonical);
 
   auto fromSymmetry = StringFromCanonical(symmetry[0]);
@@ -491,8 +491,8 @@ TEST(GameShadow, TestSymmetry2) {
                   CANONICAL_SHAPE[2]] = {0};
   game.Canonicalize(canonical);
 
-  float symmetry[1][CANONICAL_SHAPE[0] * CANONICAL_SHAPE[1] * CANONICAL_SHAPE[2]] =
-      {0};
+  float symmetry[1][CANONICAL_SHAPE[0] * CANONICAL_SHAPE[1] *
+                    CANONICAL_SHAPE[2]] = {0};
   game.create_symmetry_boards(&symmetry[0][0], canonical);
 
   auto fromSymmetry = StringFromCanonical(symmetry[0]);
@@ -509,15 +509,17 @@ TEST(GameShadow, TestSymmetryAction) {
   game2.Move(game2.string_to_action("5aul"));
 
   float actions[NUM_ACTIONS] = {0};
-  for(int i = 0; i < NUM_ACTIONS; i++) {
+  for (int i = 0; i < NUM_ACTIONS; i++) {
     actions[i] = i;
   }
 
   float symmetry[1][NUM_ACTIONS] = {0};
   game.create_symmetry_actions(&symmetry[0][0], actions);
 
-  EXPECT_EQ(symmetry[0][game2.string_to_action("36d")], actions[game.string_to_action("72d")]);
-  EXPECT_EQ(symmetry[0][game2.string_to_action("8dr2")], actions[game.string_to_action("4hr2")]);
+  EXPECT_EQ(symmetry[0][game2.string_to_action("36d")],
+            actions[game.string_to_action("72d")]);
+  EXPECT_EQ(symmetry[0][game2.string_to_action("8dr2")],
+            actions[game.string_to_action("4hr2")]);
 }
 
 TEST(GameShadow, TestSymmetryAction2) {
@@ -532,13 +534,15 @@ TEST(GameShadow, TestSymmetryAction2) {
   for (int i = 0; i < 12; i++) game.Move(MOVE_PASS);
 
   float actions[NUM_ACTIONS] = {0};
-  for(int i = 0; i < NUM_ACTIONS; i++) {
+  for (int i = 0; i < NUM_ACTIONS; i++) {
     actions[i] = i;
   }
 
   float symmetry[1][NUM_ACTIONS] = {0};
   game.create_symmetry_actions(&symmetry[0][0], actions);
 
-  EXPECT_EQ(symmetry[0][game2.string_to_action("3cd")], actions[game.string_to_action("7gd")]);
-  EXPECT_EQ(symmetry[0][game2.string_to_action("8dr2")], actions[game.string_to_action("4hr2")]);
+  EXPECT_EQ(symmetry[0][game2.string_to_action("3cd")],
+            actions[game.string_to_action("7gd")]);
+  EXPECT_EQ(symmetry[0][game2.string_to_action("8dr2")],
+            actions[game.string_to_action("4hr2")]);
 }

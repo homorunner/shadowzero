@@ -106,10 +106,11 @@ int main(int argc, const char** argv) {
 
         auto context = algorithm.compute(game, *evaluators[evaluator_id]);
         context->step(capped ? PLAYOUT_CAP_NUM : PLAYOUT_NUM,
-                      /*root_noise_enabled=*/!capped);
+                      /*root_noise_enabled=*/!capped, /*force_playout=*/!capped);
         auto action = context->select_move(temperature);
 
-        if (action < 0 || action >= Shadow::NUM_ACTIONS || !valid_moves[action]) {
+        if (action < 0 || action >= Shadow::NUM_ACTIONS ||
+            !valid_moves[action]) {
           std::cout << "Invalid move " << action << std::endl;
           stop = true;
           break;
@@ -136,7 +137,7 @@ int main(int argc, const char** argv) {
       }
 
       float score;
-      
+
       if (valid_move_count == 0) {
         score = game.Current_player() == 0 ? 0.0f : 1.0f;
       } else {
@@ -160,7 +161,7 @@ int main(int argc, const char** argv) {
                                         Shadow::CANONICAL_SHAPE[2]);
         context->mcts.set_probs(policy.mutable_data_ptr<float>() +
                                     i * kSymmetry * Shadow::NUM_ACTIONS,
-                                1.0f);
+                                /*temp=*/1.0f, /*prune_forced_count=*/true);
         values[i * kSymmetry][context->game->Current_player()] = score;
         values[i * kSymmetry][!context->game->Current_player()] = 1.0f - score;
 

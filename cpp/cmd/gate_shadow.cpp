@@ -83,7 +83,7 @@ int main(int argc, const char** argv) {
                 win_count[1] >= GATING_AT_LEAST_WIN) {
               break;
             }
-            
+
             Game game;
             float temperature = ALPHAZERO_TEMPERATURE_START;
             int turn;
@@ -113,7 +113,8 @@ int main(int argc, const char** argv) {
               context->step(ALPHAZERO_NUM_PLAYOUT, false);
               auto action = context->select_move(temperature);
 
-              if (action < 0 || action >= Shadow::NUM_ACTIONS || !valid_moves[action]) {
+              if (action < 0 || action >= Shadow::NUM_ACTIONS ||
+                  !valid_moves[action]) {
                 std::cout << "Invalid move " << action << std::endl;
                 break;
               }
@@ -131,7 +132,7 @@ int main(int argc, const char** argv) {
             }
 
             float score;
-            
+
             if (valid_move_count == 0) {
               score = game.Current_player() == 0 ? 0.0f : 1.0f;
             } else {
@@ -161,7 +162,7 @@ int main(int argc, const char** argv) {
               total_score[1][0] += score;
             }
             mutex.unlock();
-            
+
             std::cout << "Win count: " << win_count[0] << " - " << win_count[1]
                       << std::endl;
           }

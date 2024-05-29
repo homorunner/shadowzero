@@ -15,12 +15,14 @@ int main(int argc, const char** argv) {
   auto start = high_resolution_clock::now();
 
   for (int i = 0; i < NumIterations; i++) {
-    evaluator.evaluate(std::bind(&Shadow::GameState::Canonicalize, &game, std::placeholders::_1),
-                           [](const float* input, const float* output) {});
+    evaluator.evaluate(std::bind(&Shadow::GameState::Canonicalize, &game,
+                                 std::placeholders::_1),
+                       [](const float* input, const float* output) {});
   }
 
   auto end = high_resolution_clock::now();
   auto duration = duration_cast<milliseconds>(end - start).count();
-  std::cout << "Time: " << duration << "ms\nIteration: " << NumIterations << std::endl;
+  std::cout << "Time: " << duration << "ms\nIteration: " << NumIterations
+            << std::endl;
   return 0;
 }

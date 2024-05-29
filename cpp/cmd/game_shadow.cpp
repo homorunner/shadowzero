@@ -33,7 +33,7 @@ void interactive(const char* model) {
           puts("Thinking...\n\n\n");
           for (; !stop.load(); iter++) {
             context->step(64, /*root_noise_enabled=*/true);
-            context->show_actions(5);
+            context->show_actions(5, /*move_up_cursor=*/true);
           }
         });
 
