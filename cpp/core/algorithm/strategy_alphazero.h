@@ -62,7 +62,7 @@ struct Node {
         children.emplace_back(w);
       }
     }
-    static auto rd = std::default_random_engine(0);
+    static auto rd = std::default_random_engine(std::time(0));
     std::shuffle(children.begin(), children.end(), rd);
   }
   size_t size() const noexcept { return children.size(); }
@@ -202,7 +202,7 @@ class MCTS {
   void add_root_noise() {
     auto dist =
         std::gamma_distribution<float>{NOISE_ALPHA_RATIO / root_.size(), 1.0};
-    static auto re = std::default_random_engine(0);
+    static auto re = std::default_random_engine(std::time(0));
     std::vector<float> noise(num_moves_, 0);
     float sum = 0;
     for (auto& c : root_.children) {
