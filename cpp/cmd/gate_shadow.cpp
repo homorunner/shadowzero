@@ -5,7 +5,7 @@
 
 constexpr bool DEBUG_SHOW_ACTIONS_PER_TURN = false;
 
-constexpr int ALPHAZERO_NUM_PLAYOUT = 300;
+constexpr int ALPHAZERO_NUM_PLAYOUT = 400;
 constexpr float ALPHAZERO_TEMPERATURE_START = 0.5f;
 constexpr float ALPHAZERO_TEMPERATURE_END = 0.2f;
 constexpr float ALPHAZERO_TEMPERATURE_LAMBDA = -0.01f;

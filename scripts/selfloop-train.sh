@@ -31,11 +31,12 @@ do
     CURRENT_MODEL_FILE=$CHECKPOINT_PATH/$(printf "%04d" $(($i + 1)))-${GAME}_traced.pt
     GATE_RESULT_FILE=$GATE_RESULT_PATH/$(printf "%04d" $i).txt
 
-    $SELFPLAY_SCRIPT $(cat $BEST_MODEL_FILE) $DATASET_PATH/$(printf "%04d" $i) $DATASET_PER_RUN
+    $SELFPLAY_SCRIPT --model $(cat $BEST_MODEL_FILE) --output-dir $DATASET_PATH/$(printf "%04d" $i) --count $DATASET_PER_RUN
     $TRAIN_HELPER dataset pull $DATASET_PATH/$(printf "%04d" $i)
     $TRAIN_SCRIPT -i $i
     $TRAIN_HELPER model push $CURRENT_MODEL_FILE &
-    $GATE_SCRIPT 100 $CURRENT_MODEL_FILE $(cat $BEST_MODEL_FILE) --output-best $BEST_MODEL_FILE --output-data $GATE_RESULT_FILE
-    $TRAIN_HELPER gating addresult $GATE_RESULT_FILE
+    $GATE_SCRIPT 200 $CURRENT_MODEL_FILE $(cat $BEST_MODEL_FILE) --output-best $BEST_MODEL_FILE --output-data $GATE_RESULT_FILE
     echo "Best model: $(cat $BEST_MODEL_FILE)"
+    $TRAIN_HELPER gating addresult $GATE_RESULT_FILE
+    $TRAIN_HELPER model newbest $(cat $BEST_MODEL_FILE)
 done

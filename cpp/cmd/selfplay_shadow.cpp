@@ -2,6 +2,8 @@
 #include "core/evaluator/libtorch_queued.h"
 #include "game/shadow.h"
 
+#include "core/util/argh.h"
+
 constexpr bool DEBUG_SHOW_ACTIONS_PER_TURN = false;
 constexpr bool DEBUG_SHOW_GAMEBOARD = false;
 
@@ -42,37 +44,37 @@ int count_current_dataset(const char* output_dir) {
 }
 
 int main(int argc, const char** argv) {
-  if (argc < 3) {
+  argh::parser cmd({"-m", "--model", "-o", "--output-dir", "-c", "--count"});
+  cmd.parse(argc, argv);
+  auto model = cmd({"-m", "--model"}).str();
+  auto output_dir = cmd({"-o", "--output-dir"}).str();
+  int gen_dataset_count;
+  cmd({"-c", "--count"}, 1024) >> gen_dataset_count;
+  if (model.empty() || output_dir.empty()) {
     std::cout << "Usage: " << argv[0] << " <model> <output_dir>" << std::endl;
     return 1;
   }
+
   auto rand = init_rand();
   c10::InferenceMode guard;
   Algorithm algorithm;
   QueuedLibtorchEvaluator*
       evaluators[GPU_EVALUATOR_COUNT + CPU_EVALUATOR_COUNT];
   for (int i = 0; i < CPU_EVALUATOR_COUNT; i++) {
-    evaluators[i] =
-        new QueuedLibtorchEvaluator(argv[1], Shadow::CANONICAL_SHAPE,
-                                    /*cpu_only=*/true);
+    evaluators[i] = new QueuedLibtorchEvaluator(model, Shadow::CANONICAL_SHAPE,
+                                                /*cpu_only=*/true);
   }
   for (int i = CPU_EVALUATOR_COUNT;
        i < CPU_EVALUATOR_COUNT + GPU_EVALUATOR_COUNT; i++) {
     evaluators[i] = new QueuedLibtorchEvaluator(
-        argv[1], Shadow::CANONICAL_SHAPE, /*cpu_only=*/false,
+        model, Shadow::CANONICAL_SHAPE, /*cpu_only=*/false,
         /*device_id=*/i - CPU_EVALUATOR_COUNT);
   }
 
-  const char* output_dir = argv[2];
   if (!std::filesystem::exists(output_dir)) {
     std::filesystem::create_directories(output_dir);
   }
-  std::atomic<int> dataset_id = count_current_dataset(output_dir);
-
-  int GEN_DATASET_COUNT = 1024;
-  if (argc >= 4) {
-    GEN_DATASET_COUNT = std::stoi(argv[3]);
-  }
+  std::atomic<int> dataset_id = count_current_dataset(output_dir.c_str());
 
   std::atomic<bool> stop = false;
 
@@ -106,7 +108,8 @@ int main(int argc, const char** argv) {
 
         auto context = algorithm.compute(game, *evaluators[evaluator_id]);
         context->step(capped ? PLAYOUT_CAP_NUM : PLAYOUT_NUM,
-                      /*root_noise_enabled=*/!capped, /*force_playout=*/!capped);
+                      /*root_noise_enabled=*/!capped,
+                      /*force_playout=*/!capped);
         auto action = context->select_move(temperature);
 
         if (action < 0 || action >= Shadow::NUM_ACTIONS ||
@@ -185,7 +188,7 @@ int main(int argc, const char** argv) {
       }
 
       int index = dataset_id.fetch_add(1);
-      if (index >= GEN_DATASET_COUNT) {
+      if (index >= gen_dataset_count) {
         stop = true;
       }
 
@@ -206,7 +209,7 @@ int main(int argc, const char** argv) {
         work, thread_id % (GPU_EVALUATOR_COUNT + CPU_EVALUATOR_COUNT));
   }
   threads.emplace_back([&]() {
-    while (dataset_id.load() < GEN_DATASET_COUNT) {
+    while (dataset_id.load() < gen_dataset_count) {
       std::this_thread::sleep_for(std::chrono::seconds(10));
       for (int i = 0; i < CPU_EVALUATOR_COUNT + GPU_EVALUATOR_COUNT; i++) {
         std::cout << "Evaluator " << i << ": " << evaluators[i]->statistics()

@@ -28,6 +28,10 @@ func (r *Repo) Handle(ctx context.Context, action string, args []string) {
 		r.push(ctx, args)
 	case "pull":
 		r.pull(ctx, args)
+	case "newbest":
+		r.newbest(ctx, args)
+	case "getbest":
+		r.getbest(ctx, args)
 	}
 }
 
@@ -95,3 +99,49 @@ func (r *Repo) pull(ctx context.Context, args []string) {
 		log.Print("pulled model ", modelFile)
 	}
 }
+
+func (r *Repo) newbest(ctx context.Context, args []string) {
+	if len(args) < 1 {
+		log.Fatal("not enough arguments for newbest")
+	}
+
+	modelFile := args[0]
+	if _, err := os.Stat(modelFile); os.IsNotExist(err) {
+		log.Fatal(err)
+	}
+
+	var id int
+	err := r.db.QueryRow(ctx, "INSERT INTO bestmodel (train_id, name) VALUES ($1, $2) ON CONFLICT (train_id) DO UPDATE SET name=$2 RETURNING id", "", filepath.Base(modelFile)).Scan(&id)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	log.Print("new best model to db ok. id = ", id)
+}
+
+func (r *Repo) getbest(ctx context.Context, args []string) {
+	if len(args) < 1 {
+		log.Fatal("not enough arguments for getbest")
+	}
+
+	bestFile := args[0]
+	
+	file, err := os.OpenFile(bestFile, os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	var name string
+	err = r.db.QueryRow(ctx, "SELECT name FROM bestmodel WHERE train_id = $1", "").Scan(&name)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	_, err = file.WriteString(name)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	log.Print("write best model to ", bestFile)
+}
+

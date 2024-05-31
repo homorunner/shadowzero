@@ -2,6 +2,7 @@ import copy
 import math
 import numpy as np
 import sys
+import os
 import scipy.stats
 import scipy.special
 import itertools
@@ -967,33 +968,7 @@ class GameResultSummary:
         self._print_matrix(pla_names, result_matrix)
 
 
-# Testing code
 if __name__ == "__main__":
-    # Example 1
-    # data = []
-    # data.extend(likelihood_of_games("Alice","Bob", 18, 12/18, False))
-    # data.extend(likelihood_of_games("Bob","Carol", 18, 12/18, False))
-    # data.extend(likelihood_of_games("Carol","Dan", 36, 12/18, False))
-    # data.extend(likelihood_of_games("Dan","Eve", 48, 40/48, False))
-    # data.extend(make_center_elos_prior(["Alice","Bob","Carol","Dan","Eve"],0))
-    # info = compute_elos(data,verbose=True)
-
-    # for player in info.players:
-    #     for player2 in info.players:
-    #         print(info.get_approx_likelihood_of_superiority(player,player2),end=" ")
-    #     print()
-
-    # Example 2
-    # summary = GameResultSummary(
-    #     elo_prior_games=1.0,
-    #     estimate_first_player_advantage=False,
-    # )
-    # summary.add_game_record(GameRecord("Alice", "Bob", win=12, loss=6))
-    # summary.add_game_record(GameRecord("Bob", "Carol", win=12, loss=6))
-    # summary.add_game_record(GameRecord("Carol", "Dan", win=36, loss=18))
-    # summary.add_game_record(GameRecord("Dan", "Eve", win=48, loss=24))
-    # summary.print_elos()
-
     summary = GameResultSummary(
         elo_prior_games=1.0,
         estimate_first_player_advantage=False,
@@ -1021,16 +996,12 @@ if __name__ == "__main__":
     plt.title('Elo Rating Over Time')
     plt.xlabel('Iteration')
     plt.ylabel('Elo Rating')
-
-    # Show legend
     plt.legend(loc='lower right')
-
-    # Show grid
     plt.grid(True)
 
-    # Instead of plt.show(), use plt.savefig() to save the figure to a file
-    # Here, we save the plot as a PNG file with a resolution of 300 DPI
-    plt.savefig('elo_rating_graph.png', dpi=300)
+    if os.path.exists('data'):
+        fig_output_path = 'data/elo_rating_graph.png'
+    else:
+        fig_output_path = 'elo_rating_graph.png'
+    plt.savefig(fig_output_path, dpi=300)
 
-    # After saving, you can optionally clear the current figure to free up memory, especially if you're creating multiple plots
-    plt.clf()

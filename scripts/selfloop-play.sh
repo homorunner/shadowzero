@@ -7,7 +7,7 @@ GAME=${1:?Usage: $0 <game>}
 
 CHECKPOINT_PATH="./data/checkpoint"
 DATASET_PATH="./data/dataset"
-ELO_OUTPUT_FILE="./data/elo.txt"
+BEST_MODEL_FILE="./data/best-model.txt"
 DATASET_PER_RUN=128
 
 SELFPLAY_SCRIPT="build/selfplay_${GAME}"
@@ -18,15 +18,10 @@ mkdir -p $CHECKPOINT_PATH
 for i in $(seq $START 30000)
 do
     $TRAIN_HELPER model pull $CHECKPOINT_PATH
-    $TRAIN_HELPER gating showelo > $ELO_OUTPUT_FILE
-    
-    start=$(($(grep -n "Elos" $ELO_OUTPUT_FILE | head -n 1 | cut -d: -f1) + 1))
-    end=$(($(grep -n "Pairwise" $ELO_OUTPUT_FILE | head -n 1 | cut -d: -f1) - 1))
-    elo_list_by_strength=$(sed -n "${start},${end}p" $ELO_OUTPUT_FILE | head -n 32)
-    best_model=$(echo "$elo_list_by_strength" | head -n 1 | cut -d ":" -f 1)
+    $TRAIN_HELPER model getbest $BEST_MODEL_FILE
 
-    CURRENT_MODEL_FILE=$CHECKPOINT_PATH/$best_model
+    CURRENT_MODEL_FILE=$(cat $BEST_MODEL_FILE)
 
-    $SELFPLAY_SCRIPT $CURRENT_MODEL_FILE $DATASET_PATH/$(printf "%04d" $i) $DATASET_PER_RUN
+    $SELFPLAY_SCRIPT --model $CURRENT_MODEL_FILE --output-dir $DATASET_PATH/$(printf "%04d" $i) --count $DATASET_PER_RUN
     $TRAIN_HELPER dataset push $DATASET_PATH/$(printf "%04d" $i)
 done

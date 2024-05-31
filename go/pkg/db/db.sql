@@ -11,6 +11,13 @@ CREATE TABLE public.models (
     created_at timestamp without time zone default now() not null
 );
 
+CREATE TABLE public.bestmodel (
+    id int generated always as identity primary key,
+    train_id text unique not null,
+    name text not null,
+    created_at timestamp without time zone default now() not null
+);
+
 CREATE TABLE public.gatingresult (
     id int generated always as identity primary key,
     train_id text not null,
