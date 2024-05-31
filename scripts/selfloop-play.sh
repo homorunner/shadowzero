@@ -20,7 +20,7 @@ do
     $TRAIN_HELPER model pull $CHECKPOINT_PATH
     $TRAIN_HELPER model getbest $BEST_MODEL_FILE
 
-    CURRENT_MODEL_FILE=$(cat $BEST_MODEL_FILE)
+    CURRENT_MODEL_FILE=$CHECKPOINT_PATH/$(cat $BEST_MODEL_FILE)
 
     $SELFPLAY_SCRIPT --model $CURRENT_MODEL_FILE --output-dir $DATASET_PATH/$(printf "%04d" $i) --count $DATASET_PER_RUN
     $TRAIN_HELPER dataset push $DATASET_PATH/$(printf "%04d" $i)
