@@ -205,12 +205,9 @@ class NNWrapper:
 
         def lr_lambda(epoch):
             if epoch < 10:  # warm-up
-                return 0.5
-            elif epoch < args.lr_milestone:
-                return 1
+                return 1/3
             else:
-                # after milestone, lr_lambda starts to decrease from 1 to a minimum of 0.1
-                return args.lr_milestone / min(epoch, args.lr_milestone * 10)
+                return 1
 
         self.scheduler = torch.optim.lr_scheduler.LambdaLR(
             self.optimizer, lr_lambda=lr_lambda
