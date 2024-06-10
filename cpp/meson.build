@@ -67,6 +67,19 @@ benchmark_libtorch_basic = executable(
 )
 
 
+
+##################
+# Tests for algorithms
+##################
+
+strategy_alphazero_test = executable(
+  'strategy_alphazero_test',
+  'core/algorithm/strategy_alphazero_test.cpp',
+  dependencies: [torch_dep, torch_cpu_dep, torch_cuda_dep, c10_dep, gtest],
+)
+test('strategy_alphazero', strategy_alphazero_test, workdir : meson.project_source_root())
+
+
 ##################
 # Tests for games
 ##################
