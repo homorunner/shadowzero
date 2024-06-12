@@ -19,8 +19,8 @@ const float FPU_REDUCTION = 0.25;
 
 struct ValueType {
   // v should be the winrate/score for player 0.
-  // in this project, we only consider two-player zero sum games. value(0) +
-  // value(1) = 1.
+  // In this project, we only consider two-player zero sum games.
+  // e.g. value(0) + value(1) = 1.
   float v;
   ValueType() = default;
   explicit ValueType(float v_) : v(v_) {}
@@ -74,7 +74,8 @@ struct Node {
   float uct(float sqrt_parent_n, float cpuct, float fpu_value) const noexcept {
     return (n == 0 ? fpu_value : q) + cpuct * policy * sqrt_parent_n / (n + 1);
   }
-  Node* best_child(float cpuct, float fpu_reduction, bool force_playout) noexcept {
+  Node* best_child(float cpuct, float fpu_reduction,
+                   bool force_playout) noexcept {
     float seen_policy = 0.0f;
     for (auto& c : children) {
       if (c.n > 0) {
@@ -111,7 +112,8 @@ class MCTS {
         root_policy_temp_(root_policy_temp),
         fpu_reduction_(fpu_reduction) {}
 
-  std::unique_ptr<GameState> find_leaf(const GameState& gs, bool force_playout = false) {
+  std::unique_ptr<GameState> find_leaf(const GameState& gs,
+                                       bool force_playout = false) {
     current_ = &root_;
     auto leaf = gs.Copy();
 
@@ -391,7 +393,8 @@ class Algorithm {
       }
     }
 
-    void step(int iterations, bool root_noise_enabled = false, bool force_playout = false) {
+    void step(int iterations, bool root_noise_enabled = false,
+              bool force_playout = false) {
       if constexpr (SpecThreadCount == 0) {
         step_singlespec(iterations, root_noise_enabled, force_playout);
       } else {
@@ -399,7 +402,8 @@ class Algorithm {
       }
     }
 
-    void step_singlespec(int iterations, bool root_noise_enabled, bool force_playout) {
+    void step_singlespec(int iterations, bool root_noise_enabled,
+                         bool force_playout) {
       for (int iter = 0; iter < iterations; iter++) {
         auto leaf = mcts.find_leaf(*game, force_playout);
 
@@ -513,7 +517,8 @@ class Algorithm {
       }
     }
 
-    void show_actions(int show_count, bool move_up_cursor, bool prune_forced_count = false) {
+    void show_actions(int show_count, bool move_up_cursor,
+                      bool prune_forced_count = false) {
       int specs_count = 0;
       for (int i = 0; i < SpecThreadCount; i++) {
         if (specs[i]->root_.children.empty()) {
@@ -526,13 +531,16 @@ class Algorithm {
         printf("\33[%dF", lines_count);
       }
       for (int i = 0; i < specs_count; i++) {
-        auto counts = inversed_map(prune_forced_count ? specs[i]->policy_pruned_counts() : specs[i]->counts());
+        auto counts =
+            inversed_map(prune_forced_count ? specs[i]->policy_pruned_counts()
+                                            : specs[i]->counts());
         auto root_value = specs[i]->root_value();
         printf("Action: [%s], Winrate:  %.4f\n",
                game->action_to_string(counts.begin()->second).c_str(),
                root_value);
       }
-      auto counts = inversed_map(prune_forced_count ? mcts.policy_pruned_counts() : mcts.counts());
+      auto counts = inversed_map(
+          prune_forced_count ? mcts.policy_pruned_counts() : mcts.counts());
       printf("Action: ");
       if (counts.size() > 1) putchar('\n');
       for (auto iter = counts.rbegin(); show_count && iter != counts.rend();

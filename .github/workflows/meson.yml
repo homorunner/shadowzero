@@ -7,7 +7,6 @@ on:
 env:
   cmake_version: 3.28.3
   libtorch_version: 2.2.2  # although 2.3.0 has been released, it brokes on windows
-  python_version: 3.13
   cpp_compiler_linux: g++
 
 jobs:
@@ -29,7 +28,6 @@ jobs:
     - name: Setup Python
       uses: actions/setup-python@v4
       with:
-        python-version: ${{ env.python_version }}
         check-latest: true
   
     - name: Setup libtorch-cpu
@@ -82,7 +80,6 @@ jobs:
     - name: Setup Python
       uses: actions/setup-python@v4
       with:
-        python-version: ${{ env.python_version }}
         check-latest: true
   
     - name: Setup mason

@@ -34,7 +34,7 @@ int randn(int n) {
 
 std::multimap<int, int> inversed_map(const std::vector<int>& vec) {
   std::multimap<int, int> result;
-  for(int i = (int)vec.size() - 1; i >= 0; i--) {
+  for (int i = (int)vec.size() - 1; i >= 0; i--) {
     if (vec[i] != 0) {
       result.insert({vec[i], i});
     }
