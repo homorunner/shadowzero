@@ -371,21 +371,22 @@ class MCTS {
 template <class GameState, int SpecThreadCount>
 class Algorithm {
  public:
-  Algorithm() {}
+  Algorithm(float cpuct_ = CPUCT) : cpuct(cpuct_) {}
 
   struct Context {
-    Context(std::unique_ptr<GameState> game_, EvaluatorBase* evaluator_)
+    Context(std::unique_ptr<GameState> game_, EvaluatorBase* evaluator_,
+            float cpuct_)
         : game(std::move(game_)),
           evaluator(evaluator_),
           mcts(
-              /*cpuct=*/CPUCT,
+              /*cpuct=*/cpuct_,
               /*num_moves=*/game->Num_actions(),
               /*epsilon=*/0.25f,
               /*root_policy_temp=*/1.4f,
               /*fpu_reduction=*/FPU_REDUCTION) {
       for (int i = 0; i < SpecThreadCount; ++i) {
         specs[i] = std::make_unique<MCTS<GameState>>(
-            /*cpuct=*/CPUCT,
+            /*cpuct=*/cpuct_,
             /*num_moves=*/game->Num_actions(),
             /*epsilon=*/0.25f,
             /*root_policy_temp=*/1.4f,
@@ -595,7 +596,6 @@ class Algorithm {
     }
 
     std::unique_ptr<GameState> game;
-    // Algorithm *base; // currently not used variable, commented
     EvaluatorBase* evaluator;
     MCTS<GameState> mcts;
     std::array<std::unique_ptr<MCTS<GameState>>, SpecThreadCount> specs;
@@ -604,10 +604,12 @@ class Algorithm {
 
   std::unique_ptr<Context> compute(const GameState& game,
                                    EvaluatorBase& evaluator) {
-    auto context = std::make_unique<Context>(game.Copy(), &evaluator);
-    // context->base = this;
+    auto context = std::make_unique<Context>(game.Copy(), &evaluator, cpuct);
     return context;
   }
+
+ private:
+  float cpuct;
 };
 
 }  // namespace alphazero

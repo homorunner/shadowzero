@@ -22,7 +22,7 @@ GAME_NAME = "shadow"
 CHECKPOINT_PATH = os.path.join("data", "checkpoint")
 DATASET_PATH = os.path.join("data", "dataset")
 
-NN_DEPTH = 6
+NN_DEPTH = 8
 NN_CHANNELS = 32
 NN_LR = 0.001
 NN_LR_MILESTONE = 500
@@ -321,7 +321,7 @@ class NNWrapper:
             out_v, out_pi = self.nnet(canonical)
             l_v = self.sample_loss_v(target_vs, out_v).detach().cpu()
             l_pi = self.sample_loss_pi(target_pis, out_pi).detach().cpu()
-            total_loss = l_pi + l_v
+            total_loss = self.cv * l_v + l_pi
             for sample_loss in total_loss:
                 loss[i] = sample_loss
                 i += 1
@@ -472,7 +472,7 @@ if __name__ == "__main__":
                 depth=NN_DEPTH,
                 lr_milestone=NN_LR_MILESTONE,
                 lr=NN_LR,
-                cv=1.0,
+                cv=LOSS_C_V,
             ),
         )
         print("New network created.")
