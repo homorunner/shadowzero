@@ -58,7 +58,7 @@ Shadow: V
   for (auto m : valid_moves) {
     valid += m;
   }
-  EXPECT_EQ(valid, 29 * 8);  // 232
+  EXPECT_EQ(valid, 236);
 
   auto ended = game.End();
   EXPECT_FALSE(ended);
@@ -88,7 +88,7 @@ Shadow: V
   for (auto m : valid_moves) {
     valid += m;
   }
-  EXPECT_EQ(valid, 220);  // 1xu2...8; 3xul2...4; 232-12=220
+  EXPECT_EQ(valid, 224);
 
   auto ended = game.End();
   EXPECT_FALSE(ended);
@@ -140,7 +140,7 @@ Shadow: V
   for (auto m : valid_moves) {
     count += m;
   }
-  EXPECT_EQ(count, 168);
+  EXPECT_EQ(count, 171);
 }
 
 TEST(GameShadow, TestCapturePiece2) {
@@ -169,7 +169,7 @@ Shadow: V
   for (auto m : valid_moves) {
     count += m;
   }
-  EXPECT_EQ(count, 168);
+  EXPECT_EQ(count, 173);
 }
 
 TEST(GameShadow, TestValidMove) {
@@ -233,7 +233,7 @@ TEST(GameShadow, TestShadow) {
   game.Move(game.string_to_action("15d"));
   game.Move(game.string_to_action("15u"));
   game.Move(game.string_to_action("48u"));
-  game.Move(game.string_to_action("15d"));
+  game.Move(game.string_to_action("48d"));
   game.Move(game.string_to_action("15d"));
   game.Move(game.string_to_action("15u"));
   for (int i = 0; i < 6; i++) game.Move(MOVE_PASS);
@@ -267,7 +267,7 @@ TEST(GameShadow, TestShadow2) {
   game.Move(game.string_to_action("15d"));
   game.Move(game.string_to_action("15u"));
   game.Move(game.string_to_action("48u"));
-  game.Move(game.string_to_action("15d"));
+  game.Move(game.string_to_action("48d"));
   game.Move(game.string_to_action("15d"));
   game.Move(game.string_to_action("15u"));
   for (int i = 0; i < 6; i++) game.Move(MOVE_PASS);
@@ -302,7 +302,7 @@ TEST(GameShadow, TestShadow3) {
   game.Move(game.string_to_action("15d"));
   game.Move(game.string_to_action("15u"));
   game.Move(game.string_to_action("48u"));
-  game.Move(game.string_to_action("15d"));
+  game.Move(game.string_to_action("48d"));
   game.Move(game.string_to_action("15d"));
   game.Move(game.string_to_action("15u"));
   for (int i = 0; i < 6; i++) game.Move(MOVE_PASS);
@@ -333,7 +333,7 @@ Shadow: V
   for (auto m : valid_moves) {
     count += m;
   }
-  EXPECT_EQ(count, 190);
+  EXPECT_EQ(count, 200);
 }
 
 TEST(GameShadow, TestGameEnd) {

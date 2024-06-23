@@ -161,21 +161,26 @@ class GameState {
           auto bx = position_b % 4;
           auto by = position_b / 4;
 
-          // if move out of board, it can't move
-          if (ax + dx < 0 || ax + dx >= 4 || ay + dy < 0 || ay + dy >= 4) {
-            continue;
-          }
+          // if b move out of board, it can't move
           if (bx + dx < 0 || bx + dx >= 4 || by + dy < 0 || by + dy >= 4) {
             continue;
           }
 
+          bool move_out_flag = false;
+
           // if anything in a's way, it can't move
-          if (board[0][board_a][ax + first_step_x[dir]]
-                   [ay + first_step_y[dir]] ||
-              board[1][board_a][ax + first_step_x[dir]]
-                   [ay + first_step_y[dir]] ||
-              board[0][board_a][ax + dx][ay + dy] ||
-              board[1][board_a][ax + dx][ay + dy]) {
+          if (ax + first_step_x[dir] < 0 || ax + first_step_x[dir] >= 4 ||
+              ay + first_step_y[dir] < 0 || ay + first_step_y[dir] >= 4) {
+          } else if (board[0][board_a][ax + first_step_x[dir]]
+                          [ay + first_step_y[dir]] ||
+                     board[1][board_a][ax + first_step_x[dir]]
+                          [ay + first_step_y[dir]]) {
+            continue;
+          }
+          if (ax + dx < 0 || ax + dx >= 4 || ay + dy < 0 || ay + dy >= 4) {
+            move_out_flag = true;
+          } else if (board[0][board_a][ax + dx][ay + dy] ||
+                     board[1][board_a][ax + dx][ay + dy]) {
             continue;
           }
 
@@ -191,6 +196,9 @@ class GameState {
           if (dir >= 8 &&
               board[1][board_b][bx + first_step_x[dir]][by + first_step_y[dir]])
             count++;
+          if (count == 0 && move_out_flag) {
+            continue;
+          }
 
           if (int cx = bx + dx + first_step_x[dir],
               cy = by + dy + first_step_y[dir];
@@ -229,8 +237,13 @@ class GameState {
     assert(piece_a >= 0 && piece_a < 16);
     auto ax = piece_a % 4;
     auto ay = piece_a / 4;
-    piece_a = (ax + dirx[dir]) + (ay + diry[dir]) * 4;
-    assert(piece_a >= 0 && piece_a < 16);
+    if (ax + dirx[dir] < 0 || ax + dirx[dir] >= 4 || ay + diry[dir] < 0 ||
+        ay + diry[dir] >= 4) {
+      piece_a = CAPTURED;
+    } else {
+      piece_a = (ax + dirx[dir]) + (ay + diry[dir]) * 4;
+      assert(piece_a >= 0 && piece_a < 16);
+    }
 
     auto& piece_b = piece[current_player][b];
     assert(piece_b >= 0 && piece_b < 16);

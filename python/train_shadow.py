@@ -22,7 +22,7 @@ GAME_NAME = "shadow"
 CHECKPOINT_PATH = os.path.join("data", "checkpoint")
 DATASET_PATH = os.path.join("data", "dataset")
 
-NN_DEPTH = 8
+NN_DEPTH = 6
 NN_CHANNELS = 32
 NN_LR = 0.001
 NN_LR_MILESTONE = 500

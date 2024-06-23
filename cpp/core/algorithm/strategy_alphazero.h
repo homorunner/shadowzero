@@ -14,7 +14,7 @@ namespace alphazero {
 */
 const float NOISE_ALPHA_RATIO = 10.83f;
 
-const float CPUCT = 1.25;
+const float CPUCT = 3.0;
 const float FPU_REDUCTION = 0.25;
 
 struct ValueType {
@@ -371,11 +371,11 @@ class MCTS {
 template <class GameState, int SpecThreadCount>
 class Algorithm {
  public:
-  Algorithm(float cpuct_ = CPUCT) : cpuct(cpuct_) {}
+  Algorithm(float cpuct_ = CPUCT, float fpu_reduction_ = FPU_REDUCTION) : cpuct(cpuct_), fpu_reduction(fpu_reduction_) {}
 
   struct Context {
     Context(std::unique_ptr<GameState> game_, EvaluatorBase* evaluator_,
-            float cpuct_)
+            float cpuct_, float fpu_reduction_)
         : game(std::move(game_)),
           evaluator(evaluator_),
           mcts(
@@ -383,7 +383,7 @@ class Algorithm {
               /*num_moves=*/game->Num_actions(),
               /*epsilon=*/0.25f,
               /*root_policy_temp=*/1.4f,
-              /*fpu_reduction=*/FPU_REDUCTION) {
+              /*fpu_reduction=*/fpu_reduction_) {
       for (int i = 0; i < SpecThreadCount; ++i) {
         specs[i] = std::make_unique<MCTS<GameState>>(
             /*cpuct=*/cpuct_,
@@ -604,12 +604,13 @@ class Algorithm {
 
   std::unique_ptr<Context> compute(const GameState& game,
                                    EvaluatorBase& evaluator) {
-    auto context = std::make_unique<Context>(game.Copy(), &evaluator, cpuct);
+    auto context = std::make_unique<Context>(game.Copy(), &evaluator, cpuct, fpu_reduction);
     return context;
   }
 
  private:
   float cpuct;
+  float fpu_reduction;
 };
 
 }  // namespace alphazero

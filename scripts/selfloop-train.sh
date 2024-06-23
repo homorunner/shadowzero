@@ -25,6 +25,7 @@ if [[ $START == "new" ]]; then
     CURRENT_MODEL_FILE="$CHECKPOINT_PATH/0000-${GAME}_traced.pt"
     echo "$CURRENT_MODEL_FILE" > $BEST_MODEL_FILE
     $TRAIN_HELPER model push "$CURRENT_MODEL_FILE"
+    $TRAIN_HELPER model newbest "$CURRENT_MODEL_FILE"
 fi
 
 if [[ $START == "from_current" ]]; then
