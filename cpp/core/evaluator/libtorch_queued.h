@@ -168,7 +168,7 @@ class QueuedLibtorchEvaluator : public EvaluatorBase {
 
   std::string statistics() {
     std::stringstream ss;
-    ss << "Aaverage input size: "
+    ss << "Average input size: "
        << total_working_input_size / (double)working_input_count;
     return ss.str();
   }
