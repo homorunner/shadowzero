@@ -96,13 +96,13 @@ func (r *Repo) pull(ctx context.Context, args []string) {
 	}
 
 	for func() bool {
-		rows, err := tx.Query(ctx, "SELECT c, v, p FROM dataset ORDER BY id DESC LIMIT 10")
+		rows, err := tx.Query(ctx, "SELECT c, v, p FROM dataset ORDER BY id DESC LIMIT 100")
 		if err != nil {
 			log.Fatal(err)
 		}
 		defer rows.Close()
 
-		empty := true
+		count := 0
 
 		for rows.Next() {
 			var c, v, p []byte
@@ -111,7 +111,7 @@ func (r *Repo) pull(ctx context.Context, args []string) {
 				log.Fatal(err)
 			}
 
-			empty = false
+			count++
 
 			suffix := fmt.Sprintf("_%d_%d.pt", rand.Intn(12000), rand.Intn(12000))
 
@@ -127,18 +127,18 @@ func (r *Repo) pull(ctx context.Context, args []string) {
 			if err := os.WriteFile(pFile, p, 0644); err != nil {
 				log.Fatal(err)
 			}
-
-			log.Print("pulled dataset *" + suffix)
 		}
+
+		fmt.Printf("pull %d datasets\n", count)
 
 		rows.Close()
 
-		_, err = tx.Exec(ctx, "DELETE FROM dataset WHERE id IN (SELECT id FROM dataset ORDER BY id DESC LIMIT 10)")
+		_, err = tx.Exec(ctx, "DELETE FROM dataset WHERE id IN (SELECT id FROM dataset ORDER BY id DESC LIMIT 100)")
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		return !empty
+		return count == 100
 	}() {
 	}
 
