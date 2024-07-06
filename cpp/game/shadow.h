@@ -114,9 +114,9 @@ class GameState {
     return 0;
   }
 
-  bool Current_player() { return current_player; }
+  bool Current_player() const noexcept { return current_player; }
 
-  int Num_actions() { return NUM_ACTIONS; }
+  int Num_actions() const noexcept  { return NUM_ACTIONS; }
 
   std::vector<uint8_t> Valid_moves() const {
     auto valids = std::vector<uint8_t>(NUM_ACTIONS, 0);
@@ -287,6 +287,19 @@ class GameState {
     }
 
     return false;
+  }
+
+  float Winner() const {
+    for (int i = 0; i < 2; i++) {
+      for (int j = 0; j < 16; j += 4) {
+        if (piece[i][j] == CAPTURED && piece[i][j + 1] == CAPTURED &&
+            piece[i][j + 2] == CAPTURED && piece[i][j + 3] == CAPTURED) {
+          return !i;
+        }
+      }
+    }
+
+    std::unreachable();
   }
 
   float Score() const {

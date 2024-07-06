@@ -3,7 +3,7 @@ project(
   'cpp',
   version : '0.0.1',
   default_options : [
-    'cpp_std=c++20'
+    'cpp_std=c++23'
   ]
 )
 
@@ -106,6 +106,13 @@ selfplay_shadow = executable(
 gate_shadow = executable(
   'gate_shadow',
   'cmd/gate_shadow.cpp',
+  dependencies : [torch_dep, torch_cpu_dep, torch_cuda_dep, c10_dep],
+	link_args: link_args,
+)
+
+gate_shadow_cpuct = executable(
+  'gate_shadow_cpuct',
+  'cmd/gate_shadow_cpuct.cpp',
   dependencies : [torch_dep, torch_cpu_dep, torch_cuda_dep, c10_dep],
 	link_args: link_args,
 )

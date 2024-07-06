@@ -112,6 +112,71 @@ class MCTS {
         root_policy_temp_(root_policy_temp),
         fpu_reduction_(fpu_reduction) {}
 
+  void init_root(const GameState& gs) {
+    auto current_player = gs.Current_player();
+    auto valid_moves = gs.Valid_moves();
+    int n = gs.Num_actions();
+    int placeholder_move = -1;
+
+    root_ = Node{};
+    root_.player = current_player;
+
+    for (int i = 0; i < n; i++) {
+      if (valid_moves[i]) {
+        auto game = gs.Copy();
+        game->Move(i);
+        if (game->End()) {
+          // case 1: we win, set flag and return.
+          if (game->Winner() == current_player) {
+            root_.ended = true;
+            root_.value = ValueType(current_player, 1);
+            winning_move_ = i;
+            return;
+          }
+          // case 2: we lose, mark this move as invalid.
+          else {
+            valid_moves[i] = 0;
+            placeholder_move = i;
+          }
+        } else {
+          auto valid_moves_2 = game->Valid_moves();
+          bool all_winning_state = true;
+          for (int j = 0; j < n; j++) {
+            if (valid_moves_2[j]) {
+              auto game_2 = game->Copy();
+              game_2->Move(j);
+              if (game_2->End()) {
+                // case 3: opponent wins, mark this move as invalid.
+                if (game_2->Winner() == !current_player) {
+                  valid_moves[i] = 0;
+                  placeholder_move = i;
+                  all_winning_state = false;
+                  break;
+                }
+              } else {
+                // maybe do 3-rd check here.
+                all_winning_state = false;
+              }
+            }
+          }
+          if (all_winning_state) {
+            root_.ended = true;
+            root_.value = ValueType(current_player, 1);
+            winning_move_ = i;
+            return;
+          }
+        }
+      }
+    }
+
+    root_.add_children(valid_moves);
+    if (!root_.children.size()) {
+      root_.ended = true;
+      root_.value = ValueType(current_player, 0);  // player with no valid moves loses.
+      winning_move_ = placeholder_move;
+    }
+  }
+
   std::unique_ptr<GameState> find_leaf(const GameState& gs,
                                        bool force_playout = false) {
     current_ = &root_;
@@ -347,8 +412,7 @@ class MCTS {
         return m;
       }
     }
-    assert(false);
-    __builtin_unreachable();
+    std::unreachable();
   }
 
  private:
@@ -361,6 +425,9 @@ class MCTS {
   Node root_ = Node{};
   Node* current_;
 
+  // this flag is set only if root_->ended is true.
+  int winning_move_;
+
  private:
   std::vector<Node*> path_{};
   float epsilon_;
@@ -371,11 +438,13 @@ class MCTS {
 template <class GameState, int SpecThreadCount>
 class Algorithm {
  public:
-  Algorithm(float cpuct_ = CPUCT, float fpu_reduction_ = FPU_REDUCTION) : cpuct(cpuct_), fpu_reduction(fpu_reduction_) {}
+  Algorithm(float cpuct_ = CPUCT, float fpu_reduction_ = FPU_REDUCTION,
+            bool precalc_ = false)
+      : cpuct(cpuct_), fpu_reduction(fpu_reduction_), precalc(precalc_) {}
 
   struct Context {
     Context(std::unique_ptr<GameState> game_, EvaluatorBase* evaluator_,
-            float cpuct_, float fpu_reduction_)
+            float cpuct_, float fpu_reduction_, bool precalc_)
         : game(std::move(game_)),
           evaluator(evaluator_),
           mcts(
@@ -383,7 +452,7 @@ class Algorithm {
               /*num_moves=*/game->Num_actions(),
               /*epsilon=*/0.25f,
               /*root_policy_temp=*/1.4f,
-              /*fpu_reduction=*/fpu_reduction_) {
+              /*fpu_reduction=*/fpu_reduction_), precalc(precalc_) {
       for (int i = 0; i < SpecThreadCount; ++i) {
         specs[i] = std::make_unique<MCTS<GameState>>(
             /*cpuct=*/cpuct_,
@@ -405,6 +474,19 @@ class Algorithm {
 
     void step_singlespec(int iterations, bool root_noise_enabled,
                          bool force_playout) {
+      if (precalc && mcts.root_.n == 0) {
+        mcts.init_root(*game);
+
+        if (!mcts.root_.ended) {
+          evaluator->evaluate(
+              std::bind(&GameState::Canonicalize, *game, std::placeholders::_1),
+              std::bind(&MCTS<GameState>::process_result, &mcts,
+                        std::placeholders::_1, game->Num_actions(),
+                        std::placeholders::_2, root_noise_enabled),
+              game->Hash());
+        }
+      }
+
       for (int iter = 0; iter < iterations; iter++) {
         auto leaf = mcts.find_leaf(*game, force_playout);
 
@@ -554,6 +636,10 @@ class Algorithm {
     }
 
     int best_move() {
+      if (mcts.root_.ended) {
+        return mcts.winning_move_;
+      }
+
       float best_value = 0;
       int best_action = 0;
       for (const auto& c : mcts.root_.children) {
@@ -574,6 +660,10 @@ class Algorithm {
     }
 
     float best_value() {
+      if (mcts.root_.ended) {
+        return mcts.root_.value.get(mcts.root_.player);
+      }
+
       float best_value = 0;
       for (const auto& c : mcts.root_.children) {
         if (c.n > 0 && c.q > best_value) {
@@ -590,7 +680,15 @@ class Algorithm {
       return best_value;
     }
 
+    bool is_ended_state() {
+      return mcts.root_.ended;
+    }
+
     int select_move(float temperature) {
+      if (mcts.root_.ended) {
+        return mcts.winning_move_;
+      }
+
       auto probs = mcts.probs(temperature);
       return MCTS<GameState>::pick_move(probs);
     }
@@ -600,17 +698,20 @@ class Algorithm {
     MCTS<GameState> mcts;
     std::array<std::unique_ptr<MCTS<GameState>>, SpecThreadCount> specs;
     bool spec_initialized = false;
+    bool precalc = false;
   };
 
   std::unique_ptr<Context> compute(const GameState& game,
                                    EvaluatorBase& evaluator) {
-    auto context = std::make_unique<Context>(game.Copy(), &evaluator, cpuct, fpu_reduction);
+    auto context = std::make_unique<Context>(game.Copy(), &evaluator, cpuct,
+                                             fpu_reduction, precalc);
     return context;
   }
 
  private:
   float cpuct;
   float fpu_reduction;
+  bool precalc;
 };
 
 }  // namespace alphazero
