@@ -22,12 +22,12 @@ GAME_NAME = "shadow"
 CHECKPOINT_PATH = os.path.join("data", "checkpoint")
 DATASET_PATH = os.path.join("data", "dataset")
 
-NN_DEPTH = 6
+NN_DEPTH = 8
 NN_CHANNELS = 32
 NN_LR = 0.001
 NN_LR_MILESTONE = 500
 
-LOSS_C_V = 1.6   # coefficient of value loss
+LOSS_C_V = 1.8   # coefficient of value loss
 
 WIDTH = 4
 HEIGHT = 4
