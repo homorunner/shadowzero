@@ -439,7 +439,7 @@ template <class GameState, int SpecThreadCount>
 class Algorithm {
  public:
   Algorithm(float cpuct_ = CPUCT, float fpu_reduction_ = FPU_REDUCTION,
-            bool precalc_ = false)
+            bool precalc_ = true)
       : cpuct(cpuct_), fpu_reduction(fpu_reduction_), precalc(precalc_) {}
 
   struct Context {
