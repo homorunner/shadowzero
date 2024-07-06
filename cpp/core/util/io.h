@@ -41,11 +41,11 @@ void dumpGame(const char* filename,
   ofs.close();
 }
 
-template <class Game>
+template <class Game, class ToActionFn>
 std::shared_ptr<Game> loadGame(
     const char* filename, std::vector<std::string>& history_moves,
     std::vector<std::shared_ptr<Game>>& history,
-    std::function<int(const std::string&, int)> string_to_action) {
+    ToActionFn string_to_action) {
   auto game = std::make_shared<Game>();
   history.clear();
   history_moves.clear();
@@ -57,7 +57,7 @@ std::shared_ptr<Game> loadGame(
   }
   std::string move;
   while (ifs >> move) {
-    int action = string_to_action(move, game->Current_player());
+    int action = string_to_action(game.get(), move);
     if (action < 0 || action >= game->Num_actions()) {
       std::cerr << "Warning: invalid action, skipped." << std::endl;
       continue;

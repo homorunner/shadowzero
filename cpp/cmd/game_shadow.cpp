@@ -53,7 +53,7 @@ void interactive(const char* model) {
       } else if (move == "load") {
         game = loadGame("game.txt", history_moves, history,
                         std::bind(&Shadow::GameState::string_to_action,
-                                  game.get(), std::placeholders::_1));
+                                  std::placeholders::_1, std::placeholders::_2));
         goto start;
       } else {
         action = game->string_to_action(move);
