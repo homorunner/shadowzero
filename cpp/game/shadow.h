@@ -249,9 +249,14 @@ class GameState {
     assert(piece_b >= 0 && piece_b < 16);
     auto bx = piece_b % 4;
     auto by = piece_b / 4;
-    piece_b = (bx + dirx[dir]) + (by + diry[dir]) * 4;
-    assert(piece_b >= 0 && piece_b < 16);
-
+    if (bx + dirx[dir] < 0 || bx + dirx[dir] >= 4 || by + diry[dir] < 0 ||
+        by + diry[dir] >= 4) {
+      piece_b = CAPTURED;
+    } else {
+      piece_b = (bx + dirx[dir]) + (by + diry[dir]) * 4;
+      assert(piece_b >= 0 && piece_b < 16);
+    }
+    
     int op = (3 - b / 4) * 4;
     for (int i = op; i < op + 4; i++) {
       if (15 - piece[!current_player][i] == piece_b ||

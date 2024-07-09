@@ -56,11 +56,16 @@ void interactive(const char* model) {
                                   std::placeholders::_1, std::placeholders::_2));
         goto start;
       } else {
+        bool check = true;
+        if (move.back() == '!') {
+          check = false;
+          move.pop_back();
+        }
         action = game->string_to_action(move);
         if (action < 0 || action >= game->Num_actions()) {
           continue;
         }
-        if (action != Shadow::MOVE_PASS && !game->Valid_moves()[action]) {
+        if (check && action != Shadow::MOVE_PASS && !game->Valid_moves()[action]) {
           std::cerr << "Invalid move." << std::endl;
           continue;
         }
