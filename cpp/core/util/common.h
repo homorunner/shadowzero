@@ -32,13 +32,3 @@ int randn(int n) {
   static std::mt19937 gen(rd());
   return std::uniform_int_distribution<int>(0, n - 1)(gen);
 }
-
-std::multimap<int, int> inversed_map(const std::vector<int>& vec) {
-  std::multimap<int, int> result;
-  for (int i = (int)vec.size() - 1; i >= 0; i--) {
-    if (vec[i] != 0) {
-      result.insert({vec[i], i});
-    }
-  }
-  return result;
-}

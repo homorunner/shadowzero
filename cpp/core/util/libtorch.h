@@ -17,8 +17,8 @@
 namespace torch {
 
 void print_libtorch_version() {
-  std::cout << "PyTorch version: " << TORCH_VERSION_MAJOR << "."
-            << TORCH_VERSION_MINOR << "." << TORCH_VERSION_PATCH << std::endl;
+  std::cout << "PyTorch version: " << TORCH_VERSION_MAJOR << "." << TORCH_VERSION_MINOR << "." << TORCH_VERSION_PATCH
+            << std::endl;
 }
 
 #ifdef USE_CUDA

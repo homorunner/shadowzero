@@ -18,8 +18,7 @@ int main(int argc, const char** argv) {
   int THREAD_COUNT = 32;
 
   if (argc < 2) {
-    std::cout << "Usage: " << argv[0] << " <model>"
-              << std::endl;
+    std::cout << "Usage: " << argv[0] << " <model>" << std::endl;
     return 1;
   }
 
@@ -82,19 +81,15 @@ int main(int argc, const char** argv) {
                 continue;
               }
 
-              temperature = std::exp(ALPHAZERO_TEMPERATURE_LAMBDA * turn) *
-                                (temperature - ALPHAZERO_TEMPERATURE_END) +
+              temperature = std::exp(ALPHAZERO_TEMPERATURE_LAMBDA * turn) * (temperature - ALPHAZERO_TEMPERATURE_END) +
                             ALPHAZERO_TEMPERATURE_END;
 
-              auto context =
-                  zero[game.Current_player() ^ first_play_evaluator]->compute(
-                      game, evaluator);
+              auto context = zero[game.Current_player() ^ first_play_evaluator]->compute(game, evaluator);
 
               context->step(ALPHAZERO_NUM_PLAYOUT, false);
               auto action = context->select_move(temperature);
 
-              if (action < 0 || action >= Shadow::NUM_ACTIONS ||
-                  !valid_moves[action]) {
+              if (action < 0 || action >= Shadow::NUM_ACTIONS || !valid_moves[action]) {
                 std::cout << "Invalid move " << action << std::endl;
                 break;
               }
@@ -102,9 +97,7 @@ int main(int argc, const char** argv) {
               game.Move(action);
 
               if constexpr (DEBUG_SHOW_ACTIONS_PER_TURN) {
-                std::cout << "Turn " << turn
-                          << ", action=" << game.action_to_string(action)
-                          << std::endl;
+                std::cout << "Turn " << turn << ", action=" << game.action_to_string(action) << std::endl;
               }
               if (DEBUG_SHOW_GAMEBOARD) {
                 std::cout << game.ToString() << std::endl;
@@ -143,8 +136,7 @@ int main(int argc, const char** argv) {
             }
             mutex.unlock();
 
-            std::cout << "Win count: " << win_count[0] << " - " << win_count[1]
-                      << std::endl;
+            std::cout << "Win count: " << win_count[0] << " - " << win_count[1] << std::endl;
           }
         },
         t);

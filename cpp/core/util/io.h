@@ -27,12 +27,10 @@ void writeStringToFile(const std::string& filename, const std::string& str) {
   fout << str;
 }
 
-void dumpGame(const char* filename,
-              const std::vector<std::string>& history_moves) {
+void dumpGame(const char* filename, const std::vector<std::string>& history_moves) {
   std::ofstream ofs(filename, std::ios::trunc);
   if (!ofs.is_open()) {
-    std::cerr << "Failed to open " << filename << " to write, dump failed."
-              << std::endl;
+    std::cerr << "Failed to open " << filename << " to write, dump failed." << std::endl;
     return;
   }
   for (auto i : history_moves) {
@@ -42,17 +40,14 @@ void dumpGame(const char* filename,
 }
 
 template <class Game, class ToActionFn>
-std::shared_ptr<Game> loadGame(
-    const char* filename, std::vector<std::string>& history_moves,
-    std::vector<std::shared_ptr<Game>>& history,
-    ToActionFn string_to_action) {
+std::shared_ptr<Game> loadGame(const char* filename, std::vector<std::string>& history_moves,
+                               std::vector<std::shared_ptr<Game>>& history, ToActionFn string_to_action) {
   auto game = std::make_shared<Game>();
   history.clear();
   history_moves.clear();
   std::ifstream ifs(filename);
   if (!ifs.is_open()) {
-    std::cerr << "Failed to open " << filename << " to read, load failed."
-              << std::endl;
+    std::cerr << "Failed to open " << filename << " to read, load failed." << std::endl;
     return game;
   }
   std::string move;

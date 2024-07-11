@@ -23,8 +23,7 @@ int main(int argc, const char** argv) {
   std::string OUTPUT_DATA_FILE = "gating_data.txt";
 
   if (argc < 3) {
-    std::cout << "Usage: " << argv[0] << " <number_iteration> <model1> <model2>"
-              << std::endl;
+    std::cout << "Usage: " << argv[0] << " <number_iteration> <model1> <model2>" << std::endl;
     return 1;
   }
 
@@ -61,13 +60,11 @@ int main(int argc, const char** argv) {
 
   Algorithm zero;
   QueuedLibtorchEvaluator* evaluator[2];
-  evaluator[0] =
-      new QueuedLibtorchEvaluator(model_left, Shadow::CANONICAL_SHAPE,
-                                  /*use_cpu_only=*/false);
-  evaluator[1] =
-      new QueuedLibtorchEvaluator(model_right, Shadow::CANONICAL_SHAPE,
-                                  /*use_cpu_only=*/false,
-                                  /*device_id=*/USE_TWO_GPU ? 1 : 0);
+  evaluator[0] = new QueuedLibtorchEvaluator(model_left, Shadow::CANONICAL_SHAPE,
+                                             /*use_cpu_only=*/false);
+  evaluator[1] = new QueuedLibtorchEvaluator(model_right, Shadow::CANONICAL_SHAPE,
+                                             /*use_cpu_only=*/false,
+                                             /*device_id=*/USE_TWO_GPU ? 1 : 0);
 
   float win_count[2] = {0};
   float total_score[2][2] = {0};
@@ -77,10 +74,8 @@ int main(int argc, const char** argv) {
   for (int t = 0; t < THREAD_COUNT; t++) {
     threads.emplace_back(
         [&](int index) {
-          for (int round = index; round < GATING_TOTAL_ROUND;
-               round += THREAD_COUNT) {
-            if (win_count[0] >= GATING_AT_LEAST_WIN ||
-                win_count[1] >= GATING_AT_LEAST_WIN) {
+          for (int round = index; round < GATING_TOTAL_ROUND; round += THREAD_COUNT) {
+            if (win_count[0] >= GATING_AT_LEAST_WIN || win_count[1] >= GATING_AT_LEAST_WIN) {
               break;
             }
 
@@ -103,18 +98,14 @@ int main(int argc, const char** argv) {
                 break;
               }
 
-              temperature = std::exp(ALPHAZERO_TEMPERATURE_LAMBDA * turn) *
-                                (temperature - ALPHAZERO_TEMPERATURE_END) +
+              temperature = std::exp(ALPHAZERO_TEMPERATURE_LAMBDA * turn) * (temperature - ALPHAZERO_TEMPERATURE_END) +
                             ALPHAZERO_TEMPERATURE_END;
 
-              auto context = zero.compute(
-                  game,
-                  *evaluator[game.Current_player() ^ first_play_evaluator]);
+              auto context = zero.compute(game, *evaluator[game.Current_player() ^ first_play_evaluator]);
               context->step(ALPHAZERO_NUM_PLAYOUT, false);
               auto action = context->select_move(temperature);
 
-              if (action < 0 || action >= Shadow::NUM_ACTIONS ||
-                  !valid_moves[action]) {
+              if (action < 0 || action >= Shadow::NUM_ACTIONS || !valid_moves[action]) {
                 std::cout << "Invalid move " << action << std::endl;
                 break;
               }
@@ -122,9 +113,7 @@ int main(int argc, const char** argv) {
               game.Move(action);
 
               if constexpr (DEBUG_SHOW_ACTIONS_PER_TURN) {
-                std::cout << "Turn " << turn
-                          << ", action=" << game.action_to_string(action)
-                          << std::endl;
+                std::cout << "Turn " << turn << ", action=" << game.action_to_string(action) << std::endl;
               }
               if (DEBUG_SHOW_GAMEBOARD) {
                 std::cout << game.ToString() << std::endl;
@@ -163,8 +152,7 @@ int main(int argc, const char** argv) {
             }
             mutex.unlock();
 
-            std::cout << "Win count: " << win_count[0] << " - " << win_count[1]
-                      << std::endl;
+            std::cout << "Win count: " << win_count[0] << " - " << win_count[1] << std::endl;
           }
         },
         t);
@@ -174,9 +162,7 @@ int main(int argc, const char** argv) {
   }
 
   if (OUTPUT_BEST) {
-    writeStringToFile(OUTPUT_BEST_FILE, win_count[0] >= GATING_AT_LEAST_WIN
-                                            ? model_left
-                                            : model_right);
+    writeStringToFile(OUTPUT_BEST_FILE, win_count[0] >= GATING_AT_LEAST_WIN ? model_left : model_right);
   }
 
   if (OUTPUT_DATA) {
@@ -185,9 +171,8 @@ int main(int argc, const char** argv) {
         "{}\nsecondplay_count = {}\nsecondplay_score = {}\n"
         "[[model]]\npath = \"{}\"\nfirstplay_count = {}\nfirstplay_score = "
         "{}\nsecondplay_count = {}\nsecondplay_score = {}\n",
-        model_left, total_count[0][0], total_score[0][0], total_count[0][1],
-        total_score[0][1], model_right, total_count[1][0], total_score[1][0],
-        total_count[1][1], total_score[1][1]);
+        model_left, total_count[0][0], total_score[0][0], total_count[0][1], total_score[0][1], model_right,
+        total_count[1][0], total_score[1][0], total_count[1][1], total_score[1][1]);
     writeStringToFile(OUTPUT_DATA_FILE, data);
   }
 

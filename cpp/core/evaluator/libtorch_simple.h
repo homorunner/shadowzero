@@ -6,8 +6,7 @@
 // naive libtorch evaluator
 class LibtorchEvaluator : public EvaluatorBase {
  public:
-  LibtorchEvaluator(std::string model_path_,
-                    const std::array<int, 3>& dimentions, bool cpu_only = false,
+  LibtorchEvaluator(std::string model_path_, const std::array<int, 3>& dimentions, bool cpu_only = false,
                     bool warmup = true, bool verbose = true)
       : device("cpu"), model_path(model_path_) {
     torch::print_libtorch_version();
@@ -25,9 +24,7 @@ class LibtorchEvaluator : public EvaluatorBase {
     c10::InferenceMode guard;
     model = torch::jit::load(model_path, device);
     if (model.is_training()) {
-      if (verbose)
-        std::cout << "Warning: Model is in training mode. Calling eval()."
-                  << std::endl;
+      if (verbose) std::cout << "Warning: Model is in training mode. Calling eval()." << std::endl;
       model.eval();
     }
 
@@ -41,8 +38,7 @@ class LibtorchEvaluator : public EvaluatorBase {
     // warm up the model
     if (warmup) {
       if (verbose) std::cout << "Warming up." << std::endl;
-      std::vector<torch::jit::IValue> inputs = {
-          torch::ones({1, d1, d2, d3}, options)};
+      std::vector<torch::jit::IValue> inputs = {torch::ones({1, d1, d2, d3}, options)};
       auto _ = model.forward(inputs).toTuple();
       if (_->elements().size() > 0) {
         if (verbose) std::cout << "Warm up ok." << std::endl;
@@ -53,8 +49,7 @@ class LibtorchEvaluator : public EvaluatorBase {
   // TODO: maybe not pass std function as value here, e.g. use template.
   //       maybe return std::future<void> here.
   void evaluate(std::function<void(float*)> canonicalize,
-                std::function<void(const float*, const float*)> process_result,
-                uint64_t hashval = 0) {
+                std::function<void(const float*, const float*)> process_result, uint64_t hashval = 0) {
     c10::InferenceMode guard;
     auto input = torch::zeros({1, d1, d2, d3});
     canonicalize(input.data_ptr<float>());
@@ -69,9 +64,8 @@ class LibtorchEvaluator : public EvaluatorBase {
     process_result(pi.data_ptr<float>(), v.data_ptr<float>());
   }
 
-  void evaluateN(
-      int N, std::function<void(float*)>* canonicalizes,
-      std::function<void(const float*, const float*)>* process_results) {
+  void evaluateN(int N, std::function<void(float*)>* canonicalizes,
+                 std::function<void(const float*, const float*)>* process_results) {
     for (int i = 0; i < N; i++) {
       evaluate(canonicalizes[i], process_results[i]);
     }

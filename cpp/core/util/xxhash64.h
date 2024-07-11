@@ -84,8 +84,7 @@ class XXHash64 {
     // fold 256 bit state into one single 64 bit value
     uint64_t result;
     if (totalLength >= MaxBufferSize) {
-      result = rotateLeft(state[0], 1) + rotateLeft(state[1], 7) +
-               rotateLeft(state[2], 12) + rotateLeft(state[3], 18);
+      result = rotateLeft(state[0], 1) + rotateLeft(state[1], 7) + rotateLeft(state[2], 12) + rotateLeft(state[3], 18);
       result = (result ^ processSingle(0, state[0])) * Prime1 + Prime4;
       result = (result ^ processSingle(0, state[1])) * Prime1 + Prime4;
       result = (result ^ processSingle(0, state[2])) * Prime1 + Prime4;
@@ -105,20 +104,16 @@ class XXHash64 {
 
     // at least 8 bytes left ? => eat 8 bytes per step
     for (; data + 8 <= stop; data += 8)
-      result =
-          rotateLeft(result ^ processSingle(0, *(uint64_t*)data), 27) * Prime1 +
-          Prime4;
+      result = rotateLeft(result ^ processSingle(0, *(uint64_t*)data), 27) * Prime1 + Prime4;
 
     // 4 bytes left ? => eat those
     if (data + 4 <= stop) {
-      result = rotateLeft(result ^ (*(uint32_t*)data) * Prime1, 23) * Prime2 +
-               Prime3;
+      result = rotateLeft(result ^ (*(uint32_t*)data) * Prime1, 23) * Prime2 + Prime3;
       data += 4;
     }
 
     // take care of remaining 0..3 bytes, eat 1 byte per step
-    while (data != stop)
-      result = rotateLeft(result ^ (*data++) * Prime5, 11) * Prime1;
+    while (data != stop) result = rotateLeft(result ^ (*data++) * Prime5, 11) * Prime1;
 
     // mix bits
     result ^= result >> 33;
@@ -157,9 +152,7 @@ class XXHash64 {
   uint64_t totalLength;
 
   /// rotate bits, should compile to a single CPU instruction (ROL)
-  static inline uint64_t rotateLeft(uint64_t x, unsigned char bits) {
-    return (x << bits) | (x >> (64 - bits));
-  }
+  static inline uint64_t rotateLeft(uint64_t x, unsigned char bits) { return (x << bits) | (x >> (64 - bits)); }
 
   /// process a single 64 bit value
   static inline uint64_t processSingle(uint64_t previous, uint64_t input) {
@@ -168,9 +161,7 @@ class XXHash64 {
 
   /// process a block of 4x4 bytes, this is the main part of the XXHash32
   /// algorithm
-  static inline void process(const void* data, uint64_t& state0,
-                             uint64_t& state1, uint64_t& state2,
-                             uint64_t& state3) {
+  static inline void process(const void* data, uint64_t& state0, uint64_t& state1, uint64_t& state2, uint64_t& state3) {
     const uint64_t* block = (const uint64_t*)data;
     state0 = processSingle(state0, block[0]);
     state1 = processSingle(state1, block[1]);

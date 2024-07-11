@@ -74,8 +74,7 @@ struct Node {
   float uct(float sqrt_parent_n, float cpuct, float fpu_value) const noexcept {
     return (n == 0 ? fpu_value : q) + cpuct * policy * sqrt_parent_n / (n + 1);
   }
-  Node* best_child(float cpuct, float fpu_reduction,
-                   bool force_playout) noexcept {
+  Node* best_child(float cpuct, float fpu_reduction, bool force_playout) noexcept {
     float seen_policy = 0.0f;
     for (auto& c : children) {
       if (c.n > 0) {
@@ -103,8 +102,7 @@ struct Node {
 template <class GameState>
 class MCTS {
  public:
-  MCTS(float cpuct, int num_moves, float epsilon = 0,
-       float root_policy_temp = 1.4, float fpu_reduction = 0)
+  MCTS(float cpuct, int num_moves, float epsilon = 0, float root_policy_temp = 1.4, float fpu_reduction = 0)
       : cpuct_(cpuct),
         num_moves_(num_moves),
         current_(&root_),
@@ -177,8 +175,7 @@ class MCTS {
     }
   }
 
-  std::unique_ptr<GameState> find_leaf(const GameState& gs,
-                                       bool force_playout = false) {
+  std::unique_ptr<GameState> find_leaf(const GameState& gs, bool force_playout = false) {
     current_ = &root_;
     auto leaf = gs.Copy();
 
@@ -215,8 +212,7 @@ class MCTS {
     return leaf;
   }
 
-  void process_result(const float* pi, size_t size_pi, const float* v,
-                      bool root_noise_enabled = false) {
+  void process_result(const float* pi, size_t size_pi, const float* v, bool root_noise_enabled = false) {
     ValueType value(current_->value);
 
     if (!current_->ended) {
@@ -265,8 +261,7 @@ class MCTS {
   }
 
   void add_root_noise() {
-    auto dist =
-        std::gamma_distribution<float>{NOISE_ALPHA_RATIO / root_.size(), 1.0};
+    auto dist = std::gamma_distribution<float>{NOISE_ALPHA_RATIO / root_.size(), 1.0};
     static auto re = std::default_random_engine(std::time(0));
     std::vector<float> noise(num_moves_, 0);
     float sum = 0;
@@ -277,16 +272,6 @@ class MCTS {
     for (auto& c : root_.children) {
       c.policy = c.policy * (1 - epsilon_) + epsilon_ * noise[c.move] / sum;
     }
-  }
-
-  float root_value() const {
-    float q = 0;
-    for (const auto& c : root_.children) {
-      if (c.n > 0 && c.q > q) {
-        q = c.q;
-      }
-    }
-    return q;
   }
 
   std::vector<Node>& root_children() noexcept { return root_.children; }
@@ -327,8 +312,7 @@ class MCTS {
         } else {
           int visits = c.n;
 
-          int lower_bound = std::ceil(cpuct_ * c.policy * sqrt_root_n /
-                                      (best_child_uct - c.q));
+          int lower_bound = std::ceil(cpuct_ * c.policy * sqrt_root_n / (best_child_uct - c.q));
 
           result[c.move] = std::min(visits, lower_bound);
 
@@ -349,10 +333,8 @@ class MCTS {
     return probs;
   }
 
-  void set_probs(float* buffer, float temp,
-                 bool prune_forced_count = false) const noexcept {
-    auto counts =
-        prune_forced_count ? this->policy_pruned_counts() : this->counts();
+  void set_probs(float* buffer, float temp, bool prune_forced_count = false) const noexcept {
+    auto counts = prune_forced_count ? this->policy_pruned_counts() : this->counts();
 
     if (temp < 1e-7f) {
       auto best_moves = std::vector<int>{0};
@@ -438,13 +420,12 @@ class MCTS {
 template <class GameState, int SpecThreadCount>
 class Algorithm {
  public:
-  Algorithm(float cpuct_ = CPUCT, float fpu_reduction_ = FPU_REDUCTION,
-            bool precalc_ = true)
+  Algorithm(float cpuct_ = CPUCT, float fpu_reduction_ = FPU_REDUCTION, bool precalc_ = true)
       : cpuct(cpuct_), fpu_reduction(fpu_reduction_), precalc(precalc_) {}
 
   struct Context {
-    Context(std::unique_ptr<GameState> game_, EvaluatorBase* evaluator_,
-            float cpuct_, float fpu_reduction_, bool precalc_)
+    Context(std::unique_ptr<GameState> game_, EvaluatorBase* evaluator_, float cpuct_, float fpu_reduction_,
+            bool precalc_)
         : game(std::move(game_)),
           evaluator(evaluator_),
           mcts(
@@ -452,7 +433,8 @@ class Algorithm {
               /*num_moves=*/game->Num_actions(),
               /*epsilon=*/0.25f,
               /*root_policy_temp=*/1.4f,
-              /*fpu_reduction=*/fpu_reduction_), precalc(precalc_) {
+              /*fpu_reduction=*/fpu_reduction_),
+          precalc(precalc_) {
       for (int i = 0; i < SpecThreadCount; ++i) {
         specs[i] = std::make_unique<MCTS<GameState>>(
             /*cpuct=*/cpuct_,
@@ -463,8 +445,7 @@ class Algorithm {
       }
     }
 
-    void step(int iterations, bool root_noise_enabled = false,
-              bool force_playout = false) {
+    void step(int iterations, bool root_noise_enabled = false, bool force_playout = false) {
       if constexpr (SpecThreadCount == 0) {
         step_singlespec(iterations, root_noise_enabled, force_playout);
       } else {
@@ -472,18 +453,15 @@ class Algorithm {
       }
     }
 
-    void step_singlespec(int iterations, bool root_noise_enabled,
-                         bool force_playout) {
+    void step_singlespec(int iterations, bool root_noise_enabled, bool force_playout) {
       if (precalc && mcts.root_.n == 0) {
         mcts.init_root(*game);
 
         if (!mcts.root_.ended) {
-          evaluator->evaluate(
-              std::bind(&GameState::Canonicalize, *game, std::placeholders::_1),
-              std::bind(&MCTS<GameState>::process_result, &mcts,
-                        std::placeholders::_1, game->Num_actions(),
-                        std::placeholders::_2, root_noise_enabled),
-              game->Hash());
+          evaluator->evaluate(std::bind(&GameState::Canonicalize, *game, std::placeholders::_1),
+                              std::bind(&MCTS<GameState>::process_result, &mcts, std::placeholders::_1,
+                                        game->Num_actions(), std::placeholders::_2, root_noise_enabled),
+                              game->Hash());
         }
       }
 
@@ -495,12 +473,10 @@ class Algorithm {
           continue;
         }
 
-        evaluator->evaluate(
-            std::bind(&GameState::Canonicalize, *leaf, std::placeholders::_1),
-            std::bind(&MCTS<GameState>::process_result, &mcts,
-                      std::placeholders::_1, game->Num_actions(),
-                      std::placeholders::_2, root_noise_enabled),
-            leaf->Hash());
+        evaluator->evaluate(std::bind(&GameState::Canonicalize, *leaf, std::placeholders::_1),
+                            std::bind(&MCTS<GameState>::process_result, &mcts, std::placeholders::_1,
+                                      game->Num_actions(), std::placeholders::_2, root_noise_enabled),
+                            leaf->Hash());
       }
     }
 
@@ -518,17 +494,14 @@ class Algorithm {
                 for (int i = 0; i < count; i++) {
                   idx[i] = children[i].move;
                 }
-                std::sort(idx.begin(), idx.end(),
-                          [&](int a, int b) { return pi[a] > pi[b]; });
+                std::sort(idx.begin(), idx.end(), [&](int a, int b) { return pi[a] > pi[b]; });
                 count = std::min(count - 1, SpecThreadCount);
-                children.erase(
-                    std::remove_if(
-                        children.begin(), children.end(),
-                        [&idx, count](const alphazero::Node& node) {
-                          return std::find(idx.begin(), idx.begin() + count,
-                                           node.move) != idx.begin() + count;
-                        }),
-                    children.end());
+                children.erase(std::remove_if(children.begin(), children.end(),
+                                              [&idx, count](const alphazero::Node& node) {
+                                                return std::find(idx.begin(), idx.begin() + count, node.move) !=
+                                                       idx.begin() + count;
+                                              }),
+                               children.end());
                 mcts.process_result(pi, game->Num_actions(), v);
                 for (int i = 0; i < count; i++) {
                   specs[i]->root_children().emplace_back(idx[i]);
@@ -572,27 +545,17 @@ class Algorithm {
           ins[i].wait(true);
         }
 
-        std::array<std::function<void(const float*, const float*)>,
-                   SpecThreadCount + 1>
-            process_results;
-        std::array<std::function<void(float*)>, SpecThreadCount + 1>
-            canonicalizes;
+        std::array<std::function<void(const float*, const float*)>, SpecThreadCount + 1> process_results;
+        std::array<std::function<void(float*)>, SpecThreadCount + 1> canonicalizes;
         for (int i = 0; i < specCount; i++) {
-          canonicalizes[i] = std::bind(&GameState::Canonicalize, *leaves[i],
-                                       std::placeholders::_1);
-          process_results[i] =
-              std::bind(&MCTS<GameState>::process_result, specs[i].get(),
-                        std::placeholders::_1, game->Num_actions(),
-                        std::placeholders::_2, false);
+          canonicalizes[i] = std::bind(&GameState::Canonicalize, *leaves[i], std::placeholders::_1);
+          process_results[i] = std::bind(&MCTS<GameState>::process_result, specs[i].get(), std::placeholders::_1,
+                                         game->Num_actions(), std::placeholders::_2, false);
         }
-        canonicalizes[specCount] =
-            std::bind(&GameState::Canonicalize, *leaves[specCount],
-                      std::placeholders::_1);
-        process_results[specCount] = std::bind(
-            &MCTS<GameState>::process_result, &mcts, std::placeholders::_1,
-            game->Num_actions(), std::placeholders::_2, root_noise_enabled);
-        evaluator->evaluateN(specCount + 1, canonicalizes.data(),
-                             process_results.data());
+        canonicalizes[specCount] = std::bind(&GameState::Canonicalize, *leaves[specCount], std::placeholders::_1);
+        process_results[specCount] = std::bind(&MCTS<GameState>::process_result, &mcts, std::placeholders::_1,
+                                               game->Num_actions(), std::placeholders::_2, root_noise_enabled);
+        evaluator->evaluateN(specCount + 1, canonicalizes.data(), process_results.data());
       }
 
       for (auto& t : threads) {
@@ -600,8 +563,7 @@ class Algorithm {
       }
     }
 
-    void show_actions(int show_count, bool move_up_cursor,
-                      bool prune_forced_count = false) {
+    void show_actions(int show_count, bool move_up_cursor, bool prune_forced_count = false) {
       int specs_count = 0;
       for (int i = 0; i < SpecThreadCount; i++) {
         if (specs[i]->root_.children.empty()) {
@@ -610,29 +572,33 @@ class Algorithm {
         specs_count++;
       }
       if (move_up_cursor) {
-        int lines_count = specs_count + 1 + (mcts.root_children().size() > 1);
-        printf("\33[%dF", lines_count);
+        printf("\33[%dF", specs_count + show_count);
       }
+
+      auto player = mcts.root_.player;
+
       for (int i = 0; i < specs_count; i++) {
-        auto counts =
-            inversed_map(prune_forced_count ? specs[i]->policy_pruned_counts()
-                                            : specs[i]->counts());
-        auto root_value = specs[i]->root_value();
-        printf("Action: [%s], Winrate:  %.4f\n",
-               game->action_to_string(counts.begin()->second).c_str(),
-               root_value);
+        if (specs[i]->root_.children.empty()) {
+          continue;
+        }
+        auto& child = specs[i]->root_.children[0];
+        auto child_value = child.ended ? child.value(player) : child.q;
+        printf("Action: [%s]\tv=%d\tq=%.4f\n", game->action_to_string(child.move).c_str(), child.n, child_value);
       }
-      auto counts = inversed_map(
-          prune_forced_count ? mcts.policy_pruned_counts() : mcts.counts());
-      printf("Action: ");
-      if (counts.size() > 1) putchar('\n');
-      for (auto iter = counts.rbegin(); show_count && iter != counts.rend();
-           iter++, show_count--) {
-        printf("[%s]: %d , ", game->action_to_string(iter->second).c_str(),
-               iter->first);
+      std::vector<Node*> nodes;
+      for (int i = 0; i < mcts.root_.children.size(); i++) {
+        nodes.push_back(&mcts.root_.children[i]);
       }
-      auto root_value = mcts.root_value();
-      printf("Winrate: %.4f\n", root_value);
+      std::stable_sort(nodes.begin(), nodes.end(), [player](const Node* a, const Node* b) {
+        auto a_value = a->ended ? a->value(player) : a->q;
+        auto b_value = b->ended ? b->value(player) : b->q;
+        return a_value > b_value;
+      });
+      for (int i = 0; i < show_count && i < nodes.size(); i++) {
+        auto& child = *nodes[i];
+        auto child_value = child.ended ? child.value(player) : child.q;
+        printf("Action: [%s]\tv=%d\tq=%.4f\n", game->action_to_string(child.move).c_str(), child.n, child_value);
+      }
     }
 
     int best_move() {
@@ -680,9 +646,7 @@ class Algorithm {
       return best_value;
     }
 
-    bool is_ended_state() {
-      return mcts.root_.ended;
-    }
+    bool is_ended_state() { return mcts.root_.ended; }
 
     int select_move(float temperature) {
       if (mcts.root_.ended) {
@@ -701,10 +665,8 @@ class Algorithm {
     bool precalc = false;
   };
 
-  std::unique_ptr<Context> compute(const GameState& game,
-                                   EvaluatorBase& evaluator) {
-    auto context = std::make_unique<Context>(game.Copy(), &evaluator, cpuct,
-                                             fpu_reduction, precalc);
+  std::unique_ptr<Context> compute(const GameState& game, EvaluatorBase& evaluator) {
+    auto context = std::make_unique<Context>(game.Copy(), &evaluator, cpuct, fpu_reduction, precalc);
     return context;
   }
 

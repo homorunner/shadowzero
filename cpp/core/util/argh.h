@@ -30,8 +30,7 @@ class stringstream_proxy {
   stringstream_proxy(std::string const& value) : stream_(value) {}
 
   // Copy constructor.
-  stringstream_proxy(const stringstream_proxy& other)
-      : stream_(other.stream_.str()) {
+  stringstream_proxy(const stringstream_proxy& other) : stream_(other.stream_.str()) {
     stream_.setstate(other.stream_.rdstate());
   }
 
@@ -68,9 +67,7 @@ class multimap_iteration_wrapper {
   using container_t = std::multimap<std::string, std::string>;
   using iterator_t = container_t::const_iterator;
   using difference_t = container_t::difference_type;
-  explicit multimap_iteration_wrapper(const iterator_t& lb,
-                                      const iterator_t& ub)
-      : lb_(lb), ub_(ub) {}
+  explicit multimap_iteration_wrapper(const iterator_t& lb, const iterator_t& ub) : lb_(lb), ub_(ub) {}
 
   iterator_t begin() const { return lb_; }
   iterator_t end() const { return ub_; }
@@ -92,18 +89,11 @@ class parser {
 
   parser() = default;
 
-  parser(std::initializer_list<char const* const> pre_reg_names) {
-    add_params(pre_reg_names);
-  }
+  parser(std::initializer_list<char const* const> pre_reg_names) { add_params(pre_reg_names); }
 
-  parser(const char* const argv[], int mode = PREFER_FLAG_FOR_UNREG_OPTION) {
-    parse(argv, mode);
-  }
+  parser(const char* const argv[], int mode = PREFER_FLAG_FOR_UNREG_OPTION) { parse(argv, mode); }
 
-  parser(int argc, const char* const argv[],
-         int mode = PREFER_FLAG_FOR_UNREG_OPTION) {
-    parse(argc, argv, mode);
-  }
+  parser(int argc, const char* const argv[], int mode = PREFER_FLAG_FOR_UNREG_OPTION) { parse(argc, argv, mode); }
 
   void add_param(std::string const& name);
   void add_params(std::string const& name);
@@ -112,23 +102,16 @@ class parser {
   void add_params(std::initializer_list<char const* const> init_list);
 
   void parse(const char* const argv[], int mode = PREFER_FLAG_FOR_UNREG_OPTION);
-  void parse(int argc, const char* const argv[],
-             int mode = PREFER_FLAG_FOR_UNREG_OPTION);
+  void parse(int argc, const char* const argv[], int mode = PREFER_FLAG_FOR_UNREG_OPTION);
 
   std::multiset<std::string> const& flags() const { return flags_; }
-  std::multimap<std::string, std::string> const& params() const {
-    return params_;
-  }
+  std::multimap<std::string, std::string> const& params() const { return params_; }
   multimap_iteration_wrapper params(std::string const& name) const;
   std::vector<std::string> const& pos_args() const { return pos_args_; }
 
   // begin() and end() for using range-for over positional args.
-  std::vector<std::string>::const_iterator begin() const {
-    return pos_args_.cbegin();
-  }
-  std::vector<std::string>::const_iterator end() const {
-    return pos_args_.cend();
-  }
+  std::vector<std::string>::const_iterator begin() const { return pos_args_.cbegin(); }
+  std::vector<std::string>::const_iterator end() const { return pos_args_.cend(); }
   size_t size() const { return pos_args_.size(); }
 
   //////////////////////////////////////////////////////////////////////////
@@ -161,8 +144,7 @@ class parser {
   // accessor for a parameter with multiple names, give a list of names, get an
   // std::istream that can be used to convert to a typed value. call .str() on
   // result to get as string returns the first value in the list to be found.
-  string_stream operator()(
-      std::initializer_list<char const* const> init_list) const;
+  string_stream operator()(std::initializer_list<char const* const> init_list) const;
 
   // same as above, but with a default value in case the param was missing.
   // Non-string def_val types must have an operator<<() (output stream operator)
@@ -173,8 +155,7 @@ class parser {
 
   // same as above but for a list of names. returns the first value to be found.
   template <typename T>
-  string_stream operator()(std::initializer_list<char const* const> init_list,
-                           T&& def_val) const;
+  string_stream operator()(std::initializer_list<char const* const> init_list, T&& def_val) const;
 
  private:
   string_stream bad_stream() const;
@@ -195,13 +176,11 @@ class parser {
 
 inline void parser::parse(const char* const argv[], int mode) {
   int argc = 0;
-  for (auto argvp = argv; *argvp; ++argc, ++argvp)
-    ;
+  for (auto argvp = argv; *argvp; ++argc, ++argvp);
   parse(argc, argv, mode);
 }
 
-inline void parser::parse(int argc, const char* const argv[],
-                          int mode /*= PREFER_FLAG_FOR_UNREG_OPTION*/) {
+inline void parser::parse(int argc, const char* const argv[], int mode /*= PREFER_FLAG_FOR_UNREG_OPTION*/) {
   // clear out possible previous parsing remnants
   flags_.clear();
   params_.clear();
@@ -209,8 +188,7 @@ inline void parser::parse(int argc, const char* const argv[],
 
   // convert to strings
   args_.resize(static_cast<decltype(args_)::size_type>(argc));
-  std::transform(argv, argv + argc, args_.begin(),
-                 [](const char* const arg) { return arg; });
+  std::transform(argv, argv + argc, args_.begin(), [](const char* const arg) { return arg; });
 
   // parse line
   for (auto i = 0u; i < args_.size(); ++i) {
@@ -236,8 +214,7 @@ inline void parser::parse(int argc, const char* const argv[],
     {
       std::string keep_param;
 
-      if (!name.empty() &&
-          is_param(std::string(1ul, name.back())))  // last char is param
+      if (!name.empty() && is_param(std::string(1ul, name.back())))  // last char is param
       {
         keep_param += name.back();
         name.resize(name.size() - 1);
@@ -317,18 +294,12 @@ inline bool argh::parser::got_flag(std::string const& name) const {
   return flags_.end() != flags_.find(trim_leading_dashes(name));
 }
 
-inline bool argh::parser::is_param(std::string const& name) const {
-  return registeredParams_.count(name);
-}
+inline bool argh::parser::is_param(std::string const& name) const { return registeredParams_.count(name); }
 
-inline bool parser::operator[](std::string const& name) const {
-  return got_flag(name);
-}
+inline bool parser::operator[](std::string const& name) const { return got_flag(name); }
 
-inline bool parser::operator[](
-    std::initializer_list<char const* const> init_list) const {
-  return std::any_of(init_list.begin(), init_list.end(),
-                     [&](char const* const name) { return got_flag(name); });
+inline bool parser::operator[](std::initializer_list<char const* const> init_list) const {
+  return std::any_of(init_list.begin(), init_list.end(), [&](char const* const name) { return got_flag(name); });
 }
 
 inline std::string const& parser::operator[](size_t ind) const {
@@ -342,8 +313,7 @@ inline string_stream parser::operator()(std::string const& name) const {
   return bad_stream();
 }
 
-inline string_stream parser::operator()(
-    std::initializer_list<char const* const> init_list) const {
+inline string_stream parser::operator()(std::initializer_list<char const* const> init_list) const {
   for (auto& name : init_list) {
     auto optIt = params_.find(trim_leading_dashes(name));
     if (params_.end() != optIt) return string_stream(optIt->second);
@@ -364,8 +334,7 @@ string_stream parser::operator()(std::string const& name, T&& def_val) const {
 
 // same as above but for a list of names. returns the first value to be found.
 template <typename T>
-string_stream parser::operator()(
-    std::initializer_list<char const* const> init_list, T&& def_val) const {
+string_stream parser::operator()(std::initializer_list<char const* const> init_list, T&& def_val) const {
   for (auto& name : init_list) {
     auto optIt = params_.find(trim_leading_dashes(name));
     if (params_.end() != optIt) return string_stream(optIt->second);
@@ -394,29 +363,18 @@ string_stream parser::operator()(size_t ind, T&& def_val) const {
   return string_stream(pos_args_[ind]);
 }
 
-inline void parser::add_param(std::string const& name) {
-  registeredParams_.insert(trim_leading_dashes(name));
+inline void parser::add_param(std::string const& name) { registeredParams_.insert(trim_leading_dashes(name)); }
+
+inline void parser::add_param(std::initializer_list<const char* const> init_list) { parser::add_params(init_list); }
+
+inline void parser::add_params(std::initializer_list<char const* const> init_list) {
+  for (auto& name : init_list) registeredParams_.insert(trim_leading_dashes(name));
 }
 
-inline void parser::add_param(
-    std::initializer_list<const char* const> init_list) {
-  parser::add_params(init_list);
-}
+inline void parser::add_params(const std::string& name) { parser::add_param(name); }
 
-inline void parser::add_params(
-    std::initializer_list<char const* const> init_list) {
-  for (auto& name : init_list)
-    registeredParams_.insert(trim_leading_dashes(name));
-}
-
-inline void parser::add_params(const std::string& name) {
-  parser::add_param(name);
-}
-
-inline multimap_iteration_wrapper parser::params(
-    std::string const& name) const {
+inline multimap_iteration_wrapper parser::params(std::string const& name) const {
   auto trimmed_name = trim_leading_dashes(name);
-  return multimap_iteration_wrapper(params_.lower_bound(trimmed_name),
-                                    params_.upper_bound(trimmed_name));
+  return multimap_iteration_wrapper(params_.lower_bound(trimmed_name), params_.upper_bound(trimmed_name));
 }
 }  // namespace argh

@@ -181,23 +181,17 @@ TEST(GameShadow, TestValidMove) {
 
   auto valid_moves = game.Valid_moves();
   EXPECT_TRUE(valid_moves[game.string_to_action("36u2")]);
-  EXPECT_FALSE(valid_moves[game.string_to_action(
-      "37u2")]);  // can not push two piece at a time
+  EXPECT_FALSE(valid_moves[game.string_to_action("37u2")]);  // can not push two piece at a time
 
   EXPECT_TRUE(valid_moves[game.string_to_action("63lu")]);
-  EXPECT_FALSE(
-      valid_moves[game.string_to_action("73lu")]);  // can not move outside
-  EXPECT_FALSE(
-      valid_moves[game.string_to_action("53lu2")]);  // can not move outside
-  EXPECT_FALSE(
-      valid_moves[game.string_to_action("73lu2")]);  // can not move outside
+  EXPECT_FALSE(valid_moves[game.string_to_action("73lu")]);   // can not move outside
+  EXPECT_FALSE(valid_moves[game.string_to_action("53lu2")]);  // can not move outside
+  EXPECT_FALSE(valid_moves[game.string_to_action("73lu2")]);  // can not move outside
 
   EXPECT_TRUE(valid_moves[game.string_to_action("5al")]);
-  EXPECT_FALSE(valid_moves[game.string_to_action(
-      "5bl")]);                                 // can not push friendly piece
-  EXPECT_EQ(-1, game.string_to_action("56u"));  // can not move the same board
-  EXPECT_EQ(-1, game.string_to_action(
-                    "2du"));  // can not move board of the same shadow
+  EXPECT_FALSE(valid_moves[game.string_to_action("5bl")]);  // can not push friendly piece
+  EXPECT_EQ(-1, game.string_to_action("56u"));              // can not move the same board
+  EXPECT_EQ(-1, game.string_to_action("2du"));              // can not move board of the same shadow
 }
 
 TEST(GameShadow, TestValidMove2) {
@@ -253,8 +247,7 @@ Shadow: H
 )");
 
   auto valid_moves = game.Valid_moves();
-  EXPECT_TRUE(valid_moves[game.string_to_action(
-      "1ad2")]);  // now 1 and a are in different shadow
+  EXPECT_TRUE(valid_moves[game.string_to_action("1ad2")]);  // now 1 and a are in different shadow
   EXPECT_TRUE(valid_moves[game.string_to_action("1ed2")]);
   EXPECT_EQ(-1,
             game.string_to_action("15d2"));  // now 1 and 5 are in same shadow
@@ -340,10 +333,10 @@ TEST(GameShadow, TestGameEnd) {
   bool current_player = 0;
   int16_t round = 22;
   int8_t pieces[2][16] = {
-      {0, CAPTURED, CAPTURED, CAPTURED, 0, CAPTURED, CAPTURED, CAPTURED, 0,
-       CAPTURED, CAPTURED, CAPTURED, 0, CAPTURED, CAPTURED, CAPTURED},
-      {0, CAPTURED, CAPTURED, CAPTURED, 0, CAPTURED, CAPTURED, CAPTURED, 0,
-       CAPTURED, CAPTURED, CAPTURED, 0, CAPTURED, CAPTURED, CAPTURED},
+      {0, CAPTURED, CAPTURED, CAPTURED, 0, CAPTURED, CAPTURED, CAPTURED, 0, CAPTURED, CAPTURED, CAPTURED, 0, CAPTURED,
+       CAPTURED, CAPTURED},
+      {0, CAPTURED, CAPTURED, CAPTURED, 0, CAPTURED, CAPTURED, CAPTURED, 0, CAPTURED, CAPTURED, CAPTURED, 0, CAPTURED,
+       CAPTURED, CAPTURED},
   };
   GameState game(current_player, round, pieces);
 
@@ -360,8 +353,7 @@ TEST(GameShadow, TestGameEnd) {
 
 std::string StringFromCanonical(const float* canonical) {
   const float(&in)[CANONICAL_SHAPE[0]][CANONICAL_SHAPE[1]][CANONICAL_SHAPE[2]] =
-      *reinterpret_cast<const float(*)[CANONICAL_SHAPE[0]][CANONICAL_SHAPE[1]]
-                                      [CANONICAL_SHAPE[2]]>(canonical);
+      *reinterpret_cast<const float(*)[CANONICAL_SHAPE[0]][CANONICAL_SHAPE[1]][CANONICAL_SHAPE[2]]>(canonical);
   // get round and current player
   int16_t round = 0;
   const float* linear = &in[24][0][0];
@@ -454,8 +446,7 @@ TEST(GameShadow, TestCanonical) {
     if (action == -1) break;
     game.Move(action);
 
-    float canonical[CANONICAL_SHAPE[0] * CANONICAL_SHAPE[1] *
-                    CANONICAL_SHAPE[2]] = {0};
+    float canonical[CANONICAL_SHAPE[0] * CANONICAL_SHAPE[1] * CANONICAL_SHAPE[2]] = {0};
     game.Canonicalize(canonical);
 
     auto fromCanonical = StringFromCanonical(canonical);
@@ -466,12 +457,10 @@ TEST(GameShadow, TestCanonical) {
 TEST(GameShadow, TestSymmetry) {
   GameState game;
 
-  float canonical[CANONICAL_SHAPE[0] * CANONICAL_SHAPE[1] *
-                  CANONICAL_SHAPE[2]] = {0};
+  float canonical[CANONICAL_SHAPE[0] * CANONICAL_SHAPE[1] * CANONICAL_SHAPE[2]] = {0};
   game.Canonicalize(canonical);
 
-  float symmetry[1][CANONICAL_SHAPE[0] * CANONICAL_SHAPE[1] *
-                    CANONICAL_SHAPE[2]] = {0};
+  float symmetry[1][CANONICAL_SHAPE[0] * CANONICAL_SHAPE[1] * CANONICAL_SHAPE[2]] = {0};
   game.create_symmetry_boards(&symmetry[0][0], canonical);
 
   auto fromSymmetry = StringFromCanonical(symmetry[0]);
@@ -487,12 +476,10 @@ TEST(GameShadow, TestSymmetry2) {
   game2.Move(game2.string_to_action("5adr"));
   game2.Move(game2.string_to_action("5aul"));
 
-  float canonical[CANONICAL_SHAPE[0] * CANONICAL_SHAPE[1] *
-                  CANONICAL_SHAPE[2]] = {0};
+  float canonical[CANONICAL_SHAPE[0] * CANONICAL_SHAPE[1] * CANONICAL_SHAPE[2]] = {0};
   game.Canonicalize(canonical);
 
-  float symmetry[1][CANONICAL_SHAPE[0] * CANONICAL_SHAPE[1] *
-                    CANONICAL_SHAPE[2]] = {0};
+  float symmetry[1][CANONICAL_SHAPE[0] * CANONICAL_SHAPE[1] * CANONICAL_SHAPE[2]] = {0};
   game.create_symmetry_boards(&symmetry[0][0], canonical);
 
   auto fromSymmetry = StringFromCanonical(symmetry[0]);
@@ -516,10 +503,8 @@ TEST(GameShadow, TestSymmetryAction) {
   float symmetry[1][NUM_ACTIONS] = {0};
   game.create_symmetry_actions(&symmetry[0][0], actions);
 
-  EXPECT_EQ(symmetry[0][game2.string_to_action("36d")],
-            actions[game.string_to_action("72d")]);
-  EXPECT_EQ(symmetry[0][game2.string_to_action("8dr2")],
-            actions[game.string_to_action("4hr2")]);
+  EXPECT_EQ(symmetry[0][game2.string_to_action("36d")], actions[game.string_to_action("72d")]);
+  EXPECT_EQ(symmetry[0][game2.string_to_action("8dr2")], actions[game.string_to_action("4hr2")]);
 }
 
 TEST(GameShadow, TestSymmetryAction2) {
@@ -541,8 +526,6 @@ TEST(GameShadow, TestSymmetryAction2) {
   float symmetry[1][NUM_ACTIONS] = {0};
   game.create_symmetry_actions(&symmetry[0][0], actions);
 
-  EXPECT_EQ(symmetry[0][game2.string_to_action("3cd")],
-            actions[game.string_to_action("7gd")]);
-  EXPECT_EQ(symmetry[0][game2.string_to_action("8dr2")],
-            actions[game.string_to_action("4hr2")]);
+  EXPECT_EQ(symmetry[0][game2.string_to_action("3cd")], actions[game.string_to_action("7gd")]);
+  EXPECT_EQ(symmetry[0][game2.string_to_action("8dr2")], actions[game.string_to_action("4hr2")]);
 }

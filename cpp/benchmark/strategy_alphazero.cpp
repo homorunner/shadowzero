@@ -21,7 +21,6 @@ int main(int argc, const char** argv) {
   auto end = high_resolution_clock::now();
   auto duration = duration_cast<milliseconds>(end - start).count();
   std::cout << "Time: " << duration << "ms\nIteration: " << NumIterations
-            << "\nBest move: " << game.action_to_string(best_move)
-            << "\nBest value: " << best_value << std::endl;
+            << "\nBest move: " << game.action_to_string(best_move) << "\nBest value: " << best_value << std::endl;
   return 0;
 }

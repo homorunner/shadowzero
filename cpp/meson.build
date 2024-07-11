@@ -7,7 +7,7 @@ project(
   ]
 )
 
-cc         = meson.get_compiler('cpp')
+cc = meson.get_compiler('cpp')
 
 if not cc.has_header('format')
   error('C++ compiler too old, try newer compiler like g++ v13.0 or later. You may use command like "CXX=g++-13 meson build " to specify the compiler.')
@@ -27,7 +27,7 @@ gtest      = gtest_proj.get_variable('gtest_main_dep')
 #   link_args: link_args,
 # )
 torch_dep      = dependency('Torch', method: 'cmake')
-torch_cuda_dep  = cc.find_library(
+torch_cuda_dep = cc.find_library(
   'torch_cuda',
   dirs: join_paths(meson.current_source_dir(), 'subprojects\\libtorch\\lib'),
   required: false
@@ -43,6 +43,14 @@ c10_dep        = cc.find_library(
   required: true
 )
 # End of dependencies for libtorch libraries
+
+# Dependencies for onnx libraries
+onnx_dep    = dependency('onnxruntime', required: true)
+onnxlib_dep = cc.find_library(
+  'onnxruntime',
+  required: true
+)
+# End of dependencies for onnx libraries
 
 if get_option('use_cuda')
   link_args += ['-Wl,--no-as-needed']
@@ -60,13 +68,18 @@ benchmark_alphazero = executable(
 )
 
 benchmark_libtorch_basic = executable(
-  'benchmark_libtorch_basic',
-  'benchmark/evaluator_libtorch_basic.cpp',
-  dependencies : [torch_dep, torch_cpu_dep, torch_cuda_dep, c10_dep],
+  'benchmark_evaluator',
+  'benchmark/evaluator_libtorch_onnx_basic.cpp',
+  dependencies : [torch_dep, torch_cpu_dep, torch_cuda_dep, c10_dep, onnx_dep],
   link_args: link_args,
 )
 
-
+benchmark_onnx = executable(
+  'onnx_demo',
+  'benchmark/onnx_demo.cpp',
+  dependencies : [onnx_dep],
+  link_args: link_args,
+)
 
 ##################
 # Tests for algorithms

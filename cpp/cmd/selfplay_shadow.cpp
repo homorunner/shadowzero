@@ -32,8 +32,7 @@ int count_current_dataset(const char* output_dir) {
     const auto pattern = std::format("_{:04d}_", i);
     bool found = false;
     for (const auto& entry : std::filesystem::directory_iterator(output_dir)) {
-      if (entry.is_regular_file() &&
-          entry.path().string().find(pattern) != std::string::npos) {
+      if (entry.is_regular_file() && entry.path().string().find(pattern) != std::string::npos) {
         found = true;
       }
     }
@@ -58,17 +57,14 @@ int main(int argc, const char** argv) {
   auto rand = init_rand();
   c10::InferenceMode guard;
   Algorithm algorithm;
-  QueuedLibtorchEvaluator*
-      evaluators[GPU_EVALUATOR_COUNT + CPU_EVALUATOR_COUNT];
+  QueuedLibtorchEvaluator* evaluators[GPU_EVALUATOR_COUNT + CPU_EVALUATOR_COUNT];
   for (int i = 0; i < CPU_EVALUATOR_COUNT; i++) {
     evaluators[i] = new QueuedLibtorchEvaluator(model, Shadow::CANONICAL_SHAPE,
                                                 /*cpu_only=*/true);
   }
-  for (int i = CPU_EVALUATOR_COUNT;
-       i < CPU_EVALUATOR_COUNT + GPU_EVALUATOR_COUNT; i++) {
-    evaluators[i] = new QueuedLibtorchEvaluator(
-        model, Shadow::CANONICAL_SHAPE, /*cpu_only=*/false,
-        /*device_id=*/i - CPU_EVALUATOR_COUNT);
+  for (int i = CPU_EVALUATOR_COUNT; i < CPU_EVALUATOR_COUNT + GPU_EVALUATOR_COUNT; i++) {
+    evaluators[i] = new QueuedLibtorchEvaluator(model, Shadow::CANONICAL_SHAPE, /*cpu_only=*/false,
+                                                /*device_id=*/i - CPU_EVALUATOR_COUNT);
   }
 
   if (!std::filesystem::exists(output_dir)) {
@@ -102,9 +98,7 @@ int main(int argc, const char** argv) {
         // capped is used in playout cap randomization
         bool capped = rand() < PLAYOUT_CAP_PERCENT;
 
-        temperature = std::exp(TEMPERATURE_LAMBDA * turn) *
-                          (temperature - TEMPERATURE_END) +
-                      TEMPERATURE_END;
+        temperature = std::exp(TEMPERATURE_LAMBDA * turn) * (temperature - TEMPERATURE_END) + TEMPERATURE_END;
 
         auto context = algorithm.compute(game, *evaluators[evaluator_id]);
         context->step(capped ? PLAYOUT_CAP_NUM : PLAYOUT_NUM,
@@ -112,8 +106,7 @@ int main(int argc, const char** argv) {
                       /*force_playout=*/!capped);
         auto action = context->select_move(temperature);
 
-        if (action < 0 || action >= Shadow::NUM_ACTIONS ||
-            !valid_moves[action]) {
+        if (action < 0 || action >= Shadow::NUM_ACTIONS || !valid_moves[action]) {
           std::cout << "Invalid move " << action << std::endl;
           stop = true;
           break;
@@ -149,39 +142,31 @@ int main(int argc, const char** argv) {
 
       int n = contexts.size();
       const int kSymmetry = Shadow::NUM_SYMMETRIES;
-      at::Tensor canonical =
-          torch::zeros({n * kSymmetry, Shadow::CANONICAL_SHAPE[0],
-                        Shadow::CANONICAL_SHAPE[1], Shadow::CANONICAL_SHAPE[2]},
-                       torch::kFloat);
-      at::Tensor policy =
-          torch::empty({n * kSymmetry, Shadow::NUM_ACTIONS}, torch::kFloat);
+      at::Tensor canonical = torch::zeros(
+          {n * kSymmetry, Shadow::CANONICAL_SHAPE[0], Shadow::CANONICAL_SHAPE[1], Shadow::CANONICAL_SHAPE[2]},
+          torch::kFloat);
+      at::Tensor policy = torch::empty({n * kSymmetry, Shadow::NUM_ACTIONS}, torch::kFloat);
       at::Tensor values = torch::zeros({n * kSymmetry, 2}, torch::kFloat);
       for (int i = 0; i < n; i++) {
         auto& context = contexts[i];
-        context->game->Canonicalize(canonical.mutable_data_ptr<float>() +
-                                    i * kSymmetry * Shadow::CANONICAL_SHAPE[0] *
-                                        Shadow::CANONICAL_SHAPE[1] *
-                                        Shadow::CANONICAL_SHAPE[2]);
-        context->mcts.set_probs(policy.mutable_data_ptr<float>() +
-                                    i * kSymmetry * Shadow::NUM_ACTIONS,
+        context->game->Canonicalize(canonical.mutable_data_ptr<float>() + i * kSymmetry * Shadow::CANONICAL_SHAPE[0] *
+                                                                              Shadow::CANONICAL_SHAPE[1] *
+                                                                              Shadow::CANONICAL_SHAPE[2]);
+        context->mcts.set_probs(policy.mutable_data_ptr<float>() + i * kSymmetry * Shadow::NUM_ACTIONS,
                                 /*temp=*/1.0f, /*prune_forced_count=*/true);
         values[i * kSymmetry][context->game->Current_player()] = score;
         values[i * kSymmetry][!context->game->Current_player()] = 1.0f - score;
 
-        context->game->create_symmetry_boards(
-            canonical[i * kSymmetry + 1].mutable_data_ptr<float>(),
-            canonical[i * kSymmetry].mutable_data_ptr<float>());
-        context->game->create_symmetry_actions(
-            policy[i * kSymmetry + 1].mutable_data_ptr<float>(),
-            policy[i * kSymmetry].mutable_data_ptr<float>());
-        context->game->create_symmetry_values(
-            values[i * kSymmetry + 1].mutable_data_ptr<float>(),
-            values[i * kSymmetry].mutable_data_ptr<float>());
+        context->game->create_symmetry_boards(canonical[i * kSymmetry + 1].mutable_data_ptr<float>(),
+                                              canonical[i * kSymmetry].mutable_data_ptr<float>());
+        context->game->create_symmetry_actions(policy[i * kSymmetry + 1].mutable_data_ptr<float>(),
+                                               policy[i * kSymmetry].mutable_data_ptr<float>());
+        context->game->create_symmetry_values(values[i * kSymmetry + 1].mutable_data_ptr<float>(),
+                                              values[i * kSymmetry].mutable_data_ptr<float>());
       }
 
       // check for possible nan
-      if (torch::any(torch::isnan(canonical)).item<bool>() ||
-          torch::any(torch::isnan(policy)).item<bool>() ||
+      if (torch::any(torch::isnan(canonical)).item<bool>() || torch::any(torch::isnan(policy)).item<bool>() ||
           torch::any(torch::isnan(values)).item<bool>()) {
         std::cout << "Nan detected, skip." << std::endl;
         continue;
@@ -205,15 +190,13 @@ int main(int argc, const char** argv) {
 
   std::vector<std::thread> threads;
   for (int thread_id = 0; thread_id < WORKER_THREADS; thread_id++) {
-    threads.emplace_back(
-        work, thread_id % (GPU_EVALUATOR_COUNT + CPU_EVALUATOR_COUNT));
+    threads.emplace_back(work, thread_id % (GPU_EVALUATOR_COUNT + CPU_EVALUATOR_COUNT));
   }
   threads.emplace_back([&]() {
     while (dataset_id.load() < gen_dataset_count) {
       std::this_thread::sleep_for(std::chrono::seconds(10));
       for (int i = 0; i < CPU_EVALUATOR_COUNT + GPU_EVALUATOR_COUNT; i++) {
-        std::cout << "Evaluator " << i << ": " << evaluators[i]->statistics()
-                  << std::endl;
+        std::cout << "Evaluator " << i << ": " << evaluators[i]->statistics() << std::endl;
       }
     }
   });

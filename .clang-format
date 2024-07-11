@@ -7,3 +7,4 @@
 BasedOnStyle: Google
 DerivePointerAlignment: false
 SortIncludes: false
+ColumnLimit: 120

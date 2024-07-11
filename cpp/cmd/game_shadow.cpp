@@ -52,8 +52,7 @@ void interactive(const char* model) {
         continue;
       } else if (move == "load") {
         game = loadGame("game.txt", history_moves, history,
-                        std::bind(&Shadow::GameState::string_to_action,
-                                  std::placeholders::_1, std::placeholders::_2));
+                        std::bind(&Shadow::GameState::string_to_action, std::placeholders::_1, std::placeholders::_2));
         goto start;
       } else {
         bool check = true;

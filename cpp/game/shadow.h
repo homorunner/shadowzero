@@ -17,27 +17,20 @@ const ActionType MOVE_PASS = -1;
 
 const int8_t dirx[16] = {0, 1, 0, -1, 1, 1, -1, -1, 0, 2, 0, -2, 2, 2, -2, -2};
 const int8_t diry[16] = {1, 0, -1, 0, 1, -1, 1, -1, 2, 0, -2, 0, 2, -2, 2, -2};
-const int8_t first_step_x[16] = {0, 1, 0, -1, 1, 1, -1, -1,
-                                 0, 1, 0, -1, 1, 1, -1, -1};
-const int8_t first_step_y[16] = {1, 0, -1, 0, 1, -1, 1, -1,
-                                 1, 0, -1, 0, 1, -1, 1, -1};
+const int8_t first_step_x[16] = {0, 1, 0, -1, 1, 1, -1, -1, 0, 1, 0, -1, 1, 1, -1, -1};
+const int8_t first_step_y[16] = {1, 0, -1, 0, 1, -1, 1, -1, 1, 0, -1, 0, 1, -1, 1, -1};
 const char* pos_a_name = {"12345678"};
-const char* pos_b_name[2][2] = {{"5678efgh", "1234abcd"},
-                                {"abcdefgh", "abcdefgh"}};
+const char* pos_b_name[2][2] = {{"5678efgh", "1234abcd"}, {"abcdefgh", "abcdefgh"}};
 const int8_t pos_b_index[2][2][8] = {
     {{4, 5, 6, 7, 12, 13, 14, 15}, {0, 1, 2, 3, 8, 9, 10, 11}},
     {{8, 9, 10, 11, 12, 13, 14, 15}, {8, 9, 10, 11, 12, 13, 14, 15}},
 };
 const char* dir_name[2][16] = {
-    {"d", "r", "u", "l", "dr", "ur", "dl", "ul", "d2", "r2", "u2", "l2", "dr2",
-     "ur2", "dl2", "ul2"},
-    {"u", "l", "d", "r", "ul", "dl", "ur", "dr", "u2", "l2", "d2", "r2", "ul2",
-     "dl2", "ur2", "dr2"}};
+    {"d", "r", "u", "l", "dr", "ur", "dl", "ul", "d2", "r2", "u2", "l2", "dr2", "ur2", "dl2", "ul2"},
+    {"u", "l", "d", "r", "ul", "dl", "ur", "dr", "u2", "l2", "d2", "r2", "ul2", "dl2", "ur2", "dr2"}};
 const char* dir_name_alt[2][16] = {
-    {"down", "right", "up", "left", "rd", "ru", "ld", "lu", "d2", "r2", "u2",
-     "l2", "rd2", "ru2", "ld2", "lu2"},
-    {"up", "left", "down", "right", "lu", "ld", "ru", "rd", "u2", "l2", "d2",
-     "r2", "lu2", "ld2", "ru2", "rd2"}};
+    {"down", "right", "up", "left", "rd", "ru", "ld", "lu", "d2", "r2", "u2", "l2", "rd2", "ru2", "ld2", "lu2"},
+    {"up", "left", "down", "right", "lu", "ld", "ru", "rd", "u2", "l2", "d2", "r2", "lu2", "ld2", "ru2", "rd2"}};
 
 // the position of the piece is 0 ~ 15, so 16 means it was captured.
 const int CAPTURED = 16;
@@ -71,16 +64,14 @@ class GameState {
     }
   }
 
-  GameState(bool current_player, int16_t round, int8_t piece[2][16])
-      : current_player(current_player), round(round) {
+  GameState(bool current_player, int16_t round, int8_t piece[2][16]) : current_player(current_player), round(round) {
     std::memcpy(this->piece, piece, sizeof(this->piece));
   }
 
   std::string action_to_string(const ActionType action) {
     if (action == MOVE_PASS) return "pass";
     return std::string(1, pos_a_name[action % 64 / 8]) +
-           pos_b_name[(round / 12) % 2][(action % 64 / 8) >= 4][action % 8] +
-           dir_name[current_player][action / 64];
+           pos_b_name[(round / 12) % 2][(action % 64 / 8) >= 4][action % 8] + dir_name[current_player][action / 64];
   }
 
   ActionType string_to_action(const std::string& action) {
@@ -97,17 +88,14 @@ class GameState {
     }
     if (!found) return -1;
     for (int i = 0; i < 16; i++) {
-      if (action.substr(2) == dir_name[current_player][i] ||
-          action.substr(2) == dir_name_alt[current_player][i]) {
+      if (action.substr(2) == dir_name[current_player][i] || action.substr(2) == dir_name_alt[current_player][i]) {
         return ret + i * 64;
       }
     }
     return -1;
   }
 
-  std::unique_ptr<GameState> Copy() const {
-    return std::make_unique<GameState>(*this);
-  }
+  std::unique_ptr<GameState> Copy() const { return std::make_unique<GameState>(*this); }
 
   uint64_t Hash() const noexcept {
     // not implemented
@@ -116,7 +104,7 @@ class GameState {
 
   bool Current_player() const noexcept { return current_player; }
 
-  int Num_actions() const noexcept  { return NUM_ACTIONS; }
+  int Num_actions() const noexcept { return NUM_ACTIONS; }
 
   std::vector<uint8_t> Valid_moves() const {
     auto valids = std::vector<uint8_t>(NUM_ACTIONS, 0);
@@ -127,16 +115,12 @@ class GameState {
 
     for (int i = 0; i < 16; i++) {
       position[0][i] = piece[current_player][i];
-      position[1][i] = piece[!current_player][i] == CAPTURED
-                           ? CAPTURED
-                           : 15 - piece[!current_player][i];
+      position[1][i] = piece[!current_player][i] == CAPTURED ? CAPTURED : 15 - piece[!current_player][i];
     }
 
     for (int p = 0; p < 2; p++) {
       for (int i = 0; i < 16; i++) {
-        if (position[p][i] != CAPTURED)
-          board[p][p ? 3 - i / 4 : i / 4][position[p][i] % 4]
-               [position[p][i] / 4] = 1;
+        if (position[p][i] != CAPTURED) board[p][p ? 3 - i / 4 : i / 4][position[p][i] % 4][position[p][i] / 4] = 1;
       }
     }
 
@@ -145,8 +129,7 @@ class GameState {
       for (int a = 0; a < 8; a++) {
         for (int b = 0; b < 8; b++) {
           int board_a = a / 4;
-          int board_b =
-              vshadow ? a < 4 ? (b < 4 ? 1 : 3) : (b < 4 ? 0 : 2) : b / 4 + 2;
+          int board_b = vshadow ? a < 4 ? (b < 4 ? 1 : 3) : (b < 4 ? 0 : 2) : b / 4 + 2;
 
           auto position_a = position[0][a];
           auto position_b = position[0][board_b * 4 + b % 4];
@@ -169,41 +152,33 @@ class GameState {
           bool move_out_flag = false;
 
           // if anything in a's way, it can't move
-          if (ax + first_step_x[dir] < 0 || ax + first_step_x[dir] >= 4 ||
-              ay + first_step_y[dir] < 0 || ay + first_step_y[dir] >= 4) {
-          } else if (board[0][board_a][ax + first_step_x[dir]]
-                          [ay + first_step_y[dir]] ||
-                     board[1][board_a][ax + first_step_x[dir]]
-                          [ay + first_step_y[dir]]) {
+          if (ax + first_step_x[dir] < 0 || ax + first_step_x[dir] >= 4 || ay + first_step_y[dir] < 0 ||
+              ay + first_step_y[dir] >= 4) {
+          } else if (board[0][board_a][ax + first_step_x[dir]][ay + first_step_y[dir]] ||
+                     board[1][board_a][ax + first_step_x[dir]][ay + first_step_y[dir]]) {
             continue;
           }
           if (ax + dx < 0 || ax + dx >= 4 || ay + dy < 0 || ay + dy >= 4) {
             move_out_flag = true;
-          } else if (board[0][board_a][ax + dx][ay + dy] ||
-                     board[1][board_a][ax + dx][ay + dy]) {
+          } else if (board[0][board_a][ax + dx][ay + dy] || board[1][board_a][ax + dx][ay + dy]) {
             continue;
           }
 
           // if friendly piece in b's way, it can't move
-          if (board[0][board_b][bx + first_step_x[dir]]
-                   [by + first_step_y[dir]] ||
+          if (board[0][board_b][bx + first_step_x[dir]][by + first_step_y[dir]] ||
               board[0][board_b][bx + dx][by + dy]) {
             continue;
           }
 
           // if two opponent pieces in b's way, it can't move
           int count = board[1][board_b][bx + dx][by + dy];
-          if (dir >= 8 &&
-              board[1][board_b][bx + first_step_x[dir]][by + first_step_y[dir]])
-            count++;
+          if (dir >= 8 && board[1][board_b][bx + first_step_x[dir]][by + first_step_y[dir]]) count++;
           if (count == 0 && move_out_flag) {
             continue;
           }
 
-          if (int cx = bx + dx + first_step_x[dir],
-              cy = by + dy + first_step_y[dir];
-              cx >= 0 && cx < 4 && cy >= 0 && cy < 4 &&
-              (board[0][board_b][cx][cy] || board[1][board_b][cx][cy])) {
+          if (int cx = bx + dx + first_step_x[dir], cy = by + dy + first_step_y[dir];
+              cx >= 0 && cx < 4 && cy >= 0 && cy < 4 && (board[0][board_b][cx][cy] || board[1][board_b][cx][cy])) {
             count++;
           }
           if (count >= 2) {
@@ -225,9 +200,7 @@ class GameState {
       return;
     }
 
-    int a = action % 64 / 8,
-        b = pos_b_index[(round / 12) % 2][a >= 4][action % 8],
-        dir = action / 64;
+    int a = action % 64 / 8, b = pos_b_index[(round / 12) % 2][a >= 4][action % 8], dir = action / 64;
 
     assert(a >= 0 && a < 8);
     assert(b >= 0 && b < 16);
@@ -237,8 +210,7 @@ class GameState {
     assert(piece_a >= 0 && piece_a < 16);
     auto ax = piece_a % 4;
     auto ay = piece_a / 4;
-    if (ax + dirx[dir] < 0 || ax + dirx[dir] >= 4 || ay + diry[dir] < 0 ||
-        ay + diry[dir] >= 4) {
+    if (ax + dirx[dir] < 0 || ax + dirx[dir] >= 4 || ay + diry[dir] < 0 || ay + diry[dir] >= 4) {
       piece_a = CAPTURED;
     } else {
       piece_a = (ax + dirx[dir]) + (ay + diry[dir]) * 4;
@@ -249,19 +221,17 @@ class GameState {
     assert(piece_b >= 0 && piece_b < 16);
     auto bx = piece_b % 4;
     auto by = piece_b / 4;
-    if (bx + dirx[dir] < 0 || bx + dirx[dir] >= 4 || by + diry[dir] < 0 ||
-        by + diry[dir] >= 4) {
+    if (bx + dirx[dir] < 0 || bx + dirx[dir] >= 4 || by + diry[dir] < 0 || by + diry[dir] >= 4) {
       piece_b = CAPTURED;
     } else {
       piece_b = (bx + dirx[dir]) + (by + diry[dir]) * 4;
       assert(piece_b >= 0 && piece_b < 16);
     }
-    
+
     int op = (3 - b / 4) * 4;
     for (int i = op; i < op + 4; i++) {
       if (15 - piece[!current_player][i] == piece_b ||
-          15 - piece[!current_player][i] ==
-              (bx + first_step_x[dir]) + (by + first_step_y[dir]) * 4) {
+          15 - piece[!current_player][i] == (bx + first_step_x[dir]) + (by + first_step_y[dir]) * 4) {
         auto cx = bx + first_step_x[dir] + dirx[dir];
         auto cy = by + first_step_y[dir] + diry[dir];
         if (cx >= 0 && cx < 4 && cy >= 0 && cy < 4) {
@@ -284,8 +254,8 @@ class GameState {
   bool End() const {
     for (int i = 0; i < 2; i++) {
       for (int j = 0; j < 16; j += 4) {
-        if (piece[i][j] == CAPTURED && piece[i][j + 1] == CAPTURED &&
-            piece[i][j + 2] == CAPTURED && piece[i][j + 3] == CAPTURED) {
+        if (piece[i][j] == CAPTURED && piece[i][j + 1] == CAPTURED && piece[i][j + 2] == CAPTURED &&
+            piece[i][j + 3] == CAPTURED) {
           return true;
         }
       }
@@ -297,8 +267,8 @@ class GameState {
   float Winner() const {
     for (int i = 0; i < 2; i++) {
       for (int j = 0; j < 16; j += 4) {
-        if (piece[i][j] == CAPTURED && piece[i][j + 1] == CAPTURED &&
-            piece[i][j + 2] == CAPTURED && piece[i][j + 3] == CAPTURED) {
+        if (piece[i][j] == CAPTURED && piece[i][j + 1] == CAPTURED && piece[i][j + 2] == CAPTURED &&
+            piece[i][j + 3] == CAPTURED) {
           return !i;
         }
       }
@@ -312,8 +282,8 @@ class GameState {
 
     for (int i = 0; i < 2; i++) {
       for (int j = 0; j < 16; j += 4) {
-        if (piece[i][j] == CAPTURED && piece[i][j + 1] == CAPTURED &&
-            piece[i][j + 2] == CAPTURED && piece[i][j + 3] == CAPTURED) {
+        if (piece[i][j] == CAPTURED && piece[i][j + 1] == CAPTURED && piece[i][j + 2] == CAPTURED &&
+            piece[i][j + 3] == CAPTURED) {
           return i == 0 ? 0.0f : 1.0f;
         }
       }
@@ -325,12 +295,10 @@ class GameState {
   void Canonicalize(float* storage) const noexcept {
     // if we update this function (e.g. add more channels), we need to update
     // this variable
-    assert(CANONICAL_SHAPE[0] == 25 && CANONICAL_SHAPE[1] == 4 &&
-           CANONICAL_SHAPE[2] == 4);
+    assert(CANONICAL_SHAPE[0] == 25 && CANONICAL_SHAPE[1] == 4 && CANONICAL_SHAPE[2] == 4);
 
     float(&out)[CANONICAL_SHAPE[0]][CANONICAL_SHAPE[1]][CANONICAL_SHAPE[2]] =
-        *reinterpret_cast<float(*)[CANONICAL_SHAPE[0]][CANONICAL_SHAPE[1]]
-                                  [CANONICAL_SHAPE[2]]>(storage);
+        *reinterpret_cast<float(*)[CANONICAL_SHAPE[0]][CANONICAL_SHAPE[1]][CANONICAL_SHAPE[2]]>(storage);
 
     float capture_count[2] = {0.0f, 0.0f};
 
@@ -339,16 +307,13 @@ class GameState {
     // channel 20..23 represent opponent player board 0-3
     for (int i = 0; i < 16; i++) {
       if (piece[current_player][i] != CAPTURED) {
-        out[i][piece[current_player][i] / 4][piece[current_player][i] % 4] =
-            1.0f;
-        out[16 + i / 4][piece[current_player][i] / 4]
-           [piece[current_player][i] % 4] = 1.0f;
+        out[i][piece[current_player][i] / 4][piece[current_player][i] % 4] = 1.0f;
+        out[16 + i / 4][piece[current_player][i] / 4][piece[current_player][i] % 4] = 1.0f;
       } else {
         capture_count[0] += 1.0f;
       }
       if (piece[!current_player][i] != CAPTURED) {
-        out[20 + i / 4][piece[!current_player][i] / 4]
-           [piece[!current_player][i] % 4] = 1.0f;
+        out[20 + i / 4][piece[!current_player][i] / 4][piece[!current_player][i] % 4] = 1.0f;
       } else {
         capture_count[1] += 1.0f;
       }
@@ -390,8 +355,7 @@ class GameState {
         if (piece[1][j] != CAPTURED) {
           int x = (15 - piece[1][j]) % 4;
           int y = (15 - piece[1][j]) / 4;
-          board[y + 4 - offset_y][x + 4 - offset_x] =
-              (i >= 2 ? 'a' - 8 : '1') + j;
+          board[y + 4 - offset_y][x + 4 - offset_x] = (i >= 2 ? 'a' - 8 : '1') + j;
         }
       }
     }
@@ -425,8 +389,7 @@ class GameState {
     assert(CANONICAL_SHAPE[0] == 25);
 
     float(&out)[25][4][4] = *reinterpret_cast<float(*)[25][4][4]>(dst);
-    const float(&in)[25][4][4] =
-        *reinterpret_cast<const float(*)[25][4][4]>(src);
+    const float(&in)[25][4][4] = *reinterpret_cast<const float(*)[25][4][4]>(src);
 
     // note that we assert the canonical board is already filled with zeros.
     assert(out[0][0][0] == 0.0f && out[24][3][3] == 0.0f);
@@ -470,13 +433,9 @@ class GameState {
     }
   }
 
-  void create_symmetry_boards(float* dst, const float* src) const {
-    create_symmetry_board(dst, src);
-  }
+  void create_symmetry_boards(float* dst, const float* src) const { create_symmetry_board(dst, src); }
 
-  void create_symmetry_actions(float* dst, const float* src) const {
-    create_symmetry_action(dst, src);
-  }
+  void create_symmetry_actions(float* dst, const float* src) const { create_symmetry_action(dst, src); }
 };
 
 }  // namespace Shadow

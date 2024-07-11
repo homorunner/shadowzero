@@ -6,10 +6,8 @@
 // enhanced evaluator that uses a separate thread to evaluate the model
 class QueuedLibtorchEvaluator : public EvaluatorBase {
  public:
-  QueuedLibtorchEvaluator(std::string model_path,
-                          const std::array<int, 3>& dimentions,
-                          bool cpu_only = false, int device_id = 0,
-                          bool warmup = true, bool verbose = true)
+  QueuedLibtorchEvaluator(std::string model_path, const std::array<int, 3>& dimentions, bool cpu_only = false,
+                          int device_id = 0, bool warmup = true, bool verbose = true)
       : device("cpu") {
     torch::print_libtorch_version();
 
@@ -26,9 +24,7 @@ class QueuedLibtorchEvaluator : public EvaluatorBase {
     c10::InferenceMode guard;
     model = torch::jit::load(model_path, device);
     if (model.is_training()) {
-      if (verbose)
-        std::cout << "Warning: Model is in training mode. Calling eval()."
-                  << std::endl;
+      if (verbose) std::cout << "Warning: Model is in training mode. Calling eval()." << std::endl;
       model.eval();
     }
 
@@ -43,8 +39,7 @@ class QueuedLibtorchEvaluator : public EvaluatorBase {
     // warm up the model
     if (warmup) {
       if (verbose) std::cout << "Warming up." << std::endl;
-      std::vector<torch::jit::IValue> inputs = {
-          torch::ones({1, d1, d2, d3}, options)};
+      std::vector<torch::jit::IValue> inputs = {torch::ones({1, d1, d2, d3}, options)};
       auto _ = model.forward(inputs).toTuple();
       if (_->elements().size() > 0) {
         if (verbose) std::cout << "Warm up ok." << std::endl;
@@ -63,8 +58,7 @@ class QueuedLibtorchEvaluator : public EvaluatorBase {
           continue;
         }
         input_mutex.lock();
-        auto input = torch::from_blob(working_input.data(),
-                                      {working_input_size, d1, d2, d3});
+        auto input = torch::from_blob(working_input.data(), {working_input_size, d1, d2, d3});
         // auto input_guard = torch::from_blob(working_input_guard.data(),
         //                                     {working_input_size, 1});
         if (device.is_cpu()) {
@@ -88,10 +82,8 @@ class QueuedLibtorchEvaluator : public EvaluatorBase {
         auto outputs = model.forward(inputs).toTuple();
 
         // TODO: move torch::exp to inside the model
-        output_v[working_index % 64] =
-            torch::exp(outputs->elements()[0].toTensor()).cpu();
-        output_pi[working_index % 64] =
-            torch::exp(outputs->elements()[1].toTensor()).cpu();
+        output_v[working_index % 64] = torch::exp(outputs->elements()[0].toTensor()).cpu();
+        output_pi[working_index % 64] = torch::exp(outputs->elements()[1].toTensor()).cpu();
         // output_guard[working_index % 64] = inputs_guard[0].toTensor().cpu();
         job_done[working_index % 64] = true;
         job_done[working_index % 64].notify_all();
@@ -107,8 +99,7 @@ class QueuedLibtorchEvaluator : public EvaluatorBase {
   // TODO: maybe not pass std function as value here, e.g. use template.
   //       maybe return std::future<void> here.
   void evaluate(std::function<void(float*)> canonicalize,
-                std::function<void(const float*, const float*)> process_result,
-                uint64_t hashval = 0) {
+                std::function<void(const float*, const float*)> process_result, uint64_t hashval = 0) {
     c10::InferenceMode guard;
     while (true) {
       input_mutex.lock();
@@ -142,9 +133,8 @@ class QueuedLibtorchEvaluator : public EvaluatorBase {
     }
   }
 
-  void evaluateN(
-      int N, std::function<void(float*)>* canonicalizes,
-      std::function<void(const float*, const float*)>* process_results) {
+  void evaluateN(int N, std::function<void(float*)>* canonicalizes,
+                 std::function<void(const float*, const float*)>* process_results) {
     c10::InferenceMode guard;
     input_mutex.lock();
     int current_size = working_input_size;
@@ -160,16 +150,14 @@ class QueuedLibtorchEvaluator : public EvaluatorBase {
 
     assert(output_v[my_index_].size(0) >= current_size + N - 1);
     for (int i = 0; i < N; i++) {
-      process_results[i](
-          output_pi[my_index_][current_size + i].data_ptr<float>(),
-          output_v[my_index_][current_size + i].data_ptr<float>());
+      process_results[i](output_pi[my_index_][current_size + i].data_ptr<float>(),
+                         output_v[my_index_][current_size + i].data_ptr<float>());
     }
   }
 
   std::string statistics() {
     std::stringstream ss;
-    ss << "Average input size: "
-       << total_working_input_size / (double)working_input_count;
+    ss << "Average input size: " << total_working_input_size / (double)working_input_count;
     return ss.str();
   }
 
