@@ -245,13 +245,28 @@ class MCTS {
     }
 
     while (!path_.empty()) {
-      // TODO: update parent->values when all subtree have been visited.
       auto* parent = path_.back();
       path_.pop_back();
       auto v = value(parent->player);
-      current_->q = (current_->q * current_->n + v) / (current_->n + 1);
-      if (current_->n == 0) {
-        current_->v = value(current_->player);
+      if (current_->ended) {
+        double maxx = std::numeric_limits<float>::min();
+        bool all_ended = true;
+        for (auto& child : parent->children) {
+          if (!child.ended) {
+            all_ended = false;
+          } else if (child.value(parent->player) > maxx) {
+            maxx = child.value(parent->player);
+          }
+        }
+        if (all_ended || maxx > 0.999) {
+          parent->ended = true;
+          parent->value = ValueType(parent->player, maxx);
+        }
+      } else {
+        current_->q = (current_->q * current_->n + v) / (current_->n + 1);
+        if (current_->n == 0) {
+          current_->v = value(current_->player);
+        }
       }
       ++current_->n;
       current_ = parent;
@@ -572,7 +587,7 @@ class Algorithm {
         specs_count++;
       }
       if (move_up_cursor) {
-        printf("\33[%dF", specs_count + show_count);
+        printf("\33[%dF", specs_count + (specs_count + 1) * show_count);
       }
 
       auto player = mcts.root_.player;
@@ -583,7 +598,25 @@ class Algorithm {
         }
         auto& child = specs[i]->root_.children[0];
         auto child_value = child.ended ? child.value(player) : child.q;
-        printf("Action: [%s]\tv=%d\tq=%.4f\n", game->action_to_string(child.move).c_str(), child.n, child_value);
+        printf("Action: [%s]  v=%d  q=%.4f\n", game->action_to_string(child.move).c_str(), child.n, child_value);
+
+        auto subgame = game->Copy();
+        subgame->Move(child.move);
+        std::vector<Node*> subnodes;
+        for (int i = 0; i < child.children.size(); i++) {
+          subnodes.push_back(&child.children[i]);
+        }
+        std::stable_sort(subnodes.begin(), subnodes.end(), [player](const Node* a, const Node* b) {
+          auto a_value = a->ended ? a->value(player) : a->q;
+          auto b_value = b->ended ? b->value(player) : b->q;
+          return a_value > b_value;
+        });
+        for (int i = 0; i < show_count && i < subnodes.size(); i++) {
+          auto& subchild = *subnodes[i];
+          auto subchild_value = subchild.ended ? subchild.value(player) : subchild.q;
+          printf(" - subaction: [%s]  v=%d  q=%.4f\n", subgame->action_to_string(subchild.move).c_str(), subchild.n,
+                 subchild_value);
+        }
       }
       std::vector<Node*> nodes;
       for (int i = 0; i < mcts.root_.children.size(); i++) {
@@ -597,7 +630,7 @@ class Algorithm {
       for (int i = 0; i < show_count && i < nodes.size(); i++) {
         auto& child = *nodes[i];
         auto child_value = child.ended ? child.value(player) : child.q;
-        printf("Action: [%s]\tv=%d\tq=%.4f\n", game->action_to_string(child.move).c_str(), child.n, child_value);
+        printf("Action: [%s]  v=%d  q=%.4f\n", game->action_to_string(child.move).c_str(), child.n, child_value);
       }
     }
 

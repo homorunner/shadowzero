@@ -30,10 +30,10 @@ void interactive(const char* model) {
 
         std::thread t([&]() {
           int iter = 0;
-          puts("Thinking...\n\n\n");
+          puts("Thinking...");
           for (; !stop.load(); iter++) {
             context->step(64, /*root_noise_enabled=*/true);
-            context->show_actions(5, /*move_up_cursor=*/true);
+            context->show_actions(5, /*move_up_cursor=*/!!iter);
           }
         });
 
