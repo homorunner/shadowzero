@@ -43,8 +43,8 @@ jobs:
 
     - name: Setup mason
       run: |
-            python -m pip install --upgrade pip && pip --version
-            pip install meson && meson --version
+            python -m pip install --upgrade pip --break-system-packages && pip --version
+            pip install meson --break-system-packages && meson --version
             sudo apt-get install ninja-build -y
 
     - name: Setup gtest
