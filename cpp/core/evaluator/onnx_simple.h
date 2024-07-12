@@ -90,18 +90,20 @@ class OnnxEvaluator : public EvaluatorBase {
     // Ort::AllocatorWithDefaultOptions allocator;
     auto memory_info = Ort::MemoryInfo::CreateCpu(OrtDeviceAllocator, OrtMemTypeCPU);
 
+    int64_t input_shape[4] = {N, d[1], d[2], d[3]};
+
     auto inputTensor =
-        Ort::Value::CreateTensor<float>(memory_info, input.data(), N * d[1] * d[2] * d[3] * sizeof(float), d, 4);
+        Ort::Value::CreateTensor<float>(memory_info, input.data(), N * d[1] * d[2] * d[3] * sizeof(float), input_shape, 4);
 
     for (int i = 0; i < N; i++) {
       canonicalizes[i](input.data() + i * d[1] * d[2] * d[3]);
     }
 
-    int64_t v_shape[2] = {1, 2};
-    int64_t pi_shape[2] = {1, pi_size};
+    int64_t v_shape[2] = {N, 2};
+    int64_t pi_shape[2] = {N, pi_size};
     Ort::Value outputTensors[2] = {
-        Ort::Value::CreateTensor<float>(memory_info, v.data(), 2 * sizeof(float), v_shape, 2),
-        Ort::Value::CreateTensor<float>(memory_info, pi.data(), pi_size * sizeof(float), pi_shape, 2)};
+        Ort::Value::CreateTensor<float>(memory_info, v.data(), N * 2 * sizeof(float), v_shape, 2),
+        Ort::Value::CreateTensor<float>(memory_info, pi.data(), N * pi_size * sizeof(float), pi_shape, 2)};
 
     Ort::RunOptions run_options;
     session->Run(run_options, inputNames, &inputTensor, 1, outputNames, outputTensors, 2);
@@ -118,5 +120,5 @@ class OnnxEvaluator : public EvaluatorBase {
   std::unique_ptr<Ort::Session> session;
   int64_t d[4], pi_size;
   std::vector<float> v, pi;
-  std::mutex model_mutex;
+  // std::mutex model_mutex;
 };

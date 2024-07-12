@@ -11,6 +11,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Export ONNX model')
     parser.add_argument('--checkpoint', type=str, default="checkpoint.pt", help='checkpoint file')
     parser.add_argument('--output', type=str, default="output.onnx", help='output file')
+    parser.add_argument('--quiet', type=bool, default=False, help='quiet mode')
+    parser.add_argument('--skip-check', type=bool, default=False, help='skip onnx check')
     args = parser.parse_args()
 
     checkpoint = torch.load(args.checkpoint)
@@ -18,49 +20,11 @@ if __name__ == "__main__":
     net.eval()
     net.load_state_dict(checkpoint["state_dict"])
 
-    input = torch.zeros((1,) + INPUT_SIZE)
-    input[0, 0, 0, 0] = 1
-    input[0, 1, 0, 1] = 1
-    input[0, 2, 0, 2] = 1
-    input[0, 3, 0, 3] = 1
-    input[0, 4, 0, 0] = 1
-    input[0, 5, 0, 1] = 1
-    input[0, 6, 0, 2] = 1
-    input[0, 7, 0, 3] = 1
-    input[0, 8, 0, 0] = 1
-    input[0, 9, 0, 1] = 1
-    input[0, 10, 0, 2] = 1
-    input[0, 11, 0, 3] = 1
-    input[0, 12, 0, 0] = 1
-    input[0, 13, 0, 1] = 1
-    input[0, 14, 0, 2] = 1
-    input[0, 15, 0, 3] = 1
-    input[0, 16, 0, 0:4] = 1
-    input[0, 17, 0, 0:4] = 1
-    input[0, 18, 0, 0:4] = 1
-    input[0, 19, 0, 0:4] = 1
-    input[0, 20, 0, 0:4] = 1
-    input[0, 21, 0, 0:4] = 1
-    input[0, 22, 0, 0:4] = 1
-    input[0, 23, 0, 0:4] = 1
+    input = torch.ones((1,) + INPUT_SIZE)
     output_v, output_pi = net(input)
-    print(torch.exp(output_v.detach()))
-    print(output_pi.detach())
-
-    inet = torch.jit.load('testdata/example_traced.pt')
-    inet.eval()
-    output_v, output_pi = inet(input.cuda())
-    print(torch.exp(output_v.detach()))
-    print(output_pi.detach())
-
-    net.train()
-    jnet = torch.jit.trace(
-        net, torch.ones((1,) + INPUT_SIZE)
-    )
-    jnet.eval()
-    output_v, output_pi = jnet(input)
-    print(torch.exp(output_v.detach()))
-    print(output_pi.detach())
+    if not args.quiet:
+        print(torch.exp(output_v.detach()))
+        print(output_pi.detach())
 
     torch.onnx.export(net,
                       input,
@@ -73,13 +37,15 @@ if __name__ == "__main__":
                                     'v' : {0 : 'batch_size'},
                                     'p' : {0 : 'batch_size'}})
 
-    onnx_model = onnx.load(args.output)
-    onnx.checker.check_model(onnx_model)
+    if not args.skip_check:
+        onnx_model = onnx.load(args.output)
+        onnx.checker.check_model(onnx_model)
 
-    print(f"onnxruntime device: {onnxruntime.get_device()}")
-    print(f'ort avail providers: {onnxruntime.get_available_providers()}')
-    ort_session = onnxruntime.InferenceSession(args.output) # , providers=["CUDAExecutionProvider"])
-    print(f'{ort_session.get_providers()=}')
-    print(f'{ort_session.get_inputs()=}')
-    ort_output_v, ort_output_pi = ort_session.run(None, {"in": input.numpy()})
-    print(f'{numpy.exp(ort_output_v)=}')
+    if not args.quiet:
+        print(f"onnxruntime device: {onnxruntime.get_device()}")
+        print(f'ort avail providers: {onnxruntime.get_available_providers()}')
+        ort_session = onnxruntime.InferenceSession(args.output) # , providers=["CUDAExecutionProvider"])
+        print(f'{ort_session.get_providers()=}')
+        print(f'{ort_session.get_inputs()=}')
+        ort_output_v, ort_output_pi = ort_session.run(None, {"in": input.numpy()})
+        print(f'{numpy.exp(ort_output_v)=}')
