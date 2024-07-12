@@ -25,7 +25,7 @@ class OnnxEvaluator : public EvaluatorBase {
  public:
   OnnxEvaluator(std::string model_path_, const std::array<int, 3>& input_size, int output_action_size,
                 bool cpu_only = false, int device_id = 0, bool warmup = true, bool verbose = true)
-      : model_path(model_path_), pi_size(output_action_size), v(2), pi(pi_size) {
+      : model_path(model_path_), pi_size(output_action_size) {
     d[0] = 1;
     d[1] = input_size[0];
     d[2] = input_size[1];
@@ -34,13 +34,28 @@ class OnnxEvaluator : public EvaluatorBase {
 #ifdef USE_CUDA
 #endif
 
-    Ort::Env env(ORT_LOGGING_LEVEL_WARNING);
+    const OrtApi& api = Ort::GetApi();
+
+    Ort::Env env;
+    api.CreateEnv(ORT_LOGGING_LEVEL_WARNING, "onnx_evaluator", (OrtEnv**)(&env));
+    
     Ort::AllocatorWithDefaultOptions allocator;
     Ort::SessionOptions sessionOptions;
+
+    // Legacy way to use CudaProviderOption.
     OrtCUDAProviderOptions cudaProviderOptions;
     cudaProviderOptions.device_id = device_id;
     cudaProviderOptions.gpu_mem_limit = SIZE_MAX;
     sessionOptions.AppendExecutionProvider_CUDA(cudaProviderOptions);
+
+    // Use CudaProviderOptionsV2 to enable cuda graph in cuda provider option.
+    // OrtCUDAProviderOptionsV2* cuda_options = nullptr;
+    // api.CreateCUDAProviderOptions(&cuda_options);
+    // std::unique_ptr<OrtCUDAProviderOptionsV2, decltype(api.ReleaseCUDAProviderOptions)> rel_cuda_options(cuda_options, api.ReleaseCUDAProviderOptions);
+    // std::vector<const char*> keys{ "cudnn_conv_algo_search" }; // "enable_cuda_graph"};
+    // std::vector<const char*> values{ "HEURISTIC" }; // "1"};
+    // api.UpdateCUDAProviderOptions(rel_cuda_options.get(), keys.data(), values.data(), 1);
+    // api.SessionOptionsAppendExecutionProvider_CUDA_V2(static_cast<OrtSessionOptions*>(sessionOptions), rel_cuda_options.get());
 
     session = std::make_unique<Ort::Session>(env, model_path_.c_str(), sessionOptions);
 
@@ -59,7 +74,7 @@ class OnnxEvaluator : public EvaluatorBase {
 
   void evaluate(std::function<void(float*)> canonicalize,
                 std::function<void(const float*, const float*)> process_result, uint64_t hashval = 0) {
-    std::vector<float> input(d[1] * d[2] * d[3], 0);
+    std::vector<float> input(d[1] * d[2] * d[3], 0), v(2), pi(pi_size);
 
     // Ort::AllocatorWithDefaultOptions allocator;
     auto memory_info = Ort::MemoryInfo::CreateCpu(OrtDeviceAllocator, OrtMemTypeCPU);
@@ -76,7 +91,9 @@ class OnnxEvaluator : public EvaluatorBase {
         Ort::Value::CreateTensor<float>(memory_info, pi.data(), pi_size * sizeof(float), pi_shape, 2)};
 
     Ort::RunOptions run_options;
+    model_mutex.lock();
     session->Run(run_options, inputNames, &inputTensor, 1, outputNames, outputTensors, 2);
+    model_mutex.unlock();
     exp(v);
     exp_fast(pi);
 
@@ -85,7 +102,7 @@ class OnnxEvaluator : public EvaluatorBase {
 
   void evaluateN(int N, std::function<void(float*)>* canonicalizes,
                  std::function<void(const float*, const float*)>* process_results) {
-    std::vector<float> input(N * d[1] * d[2] * d[3], 0);
+    std::vector<float> input(N * d[1] * d[2] * d[3], 0), v(N * 2), pi(N * pi_size);
 
     // Ort::AllocatorWithDefaultOptions allocator;
     auto memory_info = Ort::MemoryInfo::CreateCpu(OrtDeviceAllocator, OrtMemTypeCPU);
@@ -119,6 +136,5 @@ class OnnxEvaluator : public EvaluatorBase {
   std::string model_path;
   std::unique_ptr<Ort::Session> session;
   int64_t d[4], pi_size;
-  std::vector<float> v, pi;
-  // std::mutex model_mutex;
+  std::mutex model_mutex;
 };

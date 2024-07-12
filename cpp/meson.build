@@ -45,11 +45,9 @@ c10_dep        = cc.find_library(
 # End of dependencies for libtorch libraries
 
 # Dependencies for onnx libraries
-onnx_dep    = dependency('onnxruntime', required: true)
-onnxlib_dep = cc.find_library(
-  'onnxruntime',
-  required: true
-)
+if get_option('use_onnx')
+  onnx_dep    = dependency('onnxruntime', required: true)
+endif
 # End of dependencies for onnx libraries
 
 if get_option('use_cuda')
@@ -67,19 +65,14 @@ benchmark_alphazero = executable(
   'benchmark/strategy_alphazero.cpp',
 )
 
-benchmark_libtorch_basic = executable(
-  'benchmark_evaluator',
-  'benchmark/evaluator_libtorch_onnx_basic.cpp',
-  dependencies : [torch_dep, torch_cpu_dep, torch_cuda_dep, c10_dep, onnx_dep],
-  link_args: link_args,
-)
-
-benchmark_onnx = executable(
-  'onnx_demo',
-  'benchmark/onnx_demo.cpp',
-  dependencies : [onnx_dep],
-  link_args: link_args,
-)
+if get_option('use_onnx')
+  benchmark_evaluator = executable(
+    'benchmark_evaluator',
+    'benchmark/evaluator_libtorch_onnx_basic.cpp',
+    dependencies : [torch_dep, torch_cpu_dep, torch_cuda_dep, c10_dep, onnx_dep],
+    link_args: link_args,
+  )
+endif
 
 ##################
 # Tests for algorithms

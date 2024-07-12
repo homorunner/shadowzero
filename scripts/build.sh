@@ -1,4 +1,4 @@
-# This is a simple script to build for training with libturch+CUDA (for training / benchmarking / ...)
+# This is a simple script to build for training / benchmarking / ...
 
 # work in main directory
 set -e

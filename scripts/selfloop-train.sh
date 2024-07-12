@@ -10,7 +10,7 @@ CHECKPOINT_PATH="./data/checkpoint"
 DATASET_PATH="./data/dataset"
 GATE_RESULT_PATH="./data/gate-result"
 BEST_MODEL_FILE="./data/best-model.txt"
-DATASET_PER_RUN=512
+DATASET_PER_RUN=256
 
 SELFPLAY_SCRIPT="build/selfplay_${GAME}"
 TRAIN_SCRIPT="python3 python/train_${GAME}.py"

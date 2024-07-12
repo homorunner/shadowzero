@@ -265,7 +265,9 @@ class MCTS {
         if (all_ended || max_value > 0.999) {
           parent->ended = true;
           parent->value = ValueType(parent->player, max_value);
-          parent->winning_move_ = max_move;
+          if (parent == &root_) {
+            winning_move_ = max_move;
+          }
         }
       } else {
         current_->q = (current_->q * current_->n + v) / (current_->n + 1);

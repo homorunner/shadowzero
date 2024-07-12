@@ -1,1 +1,2 @@
 option('use_cuda', type: 'boolean', value: true)
+option('use_onnx', type: 'boolean', value: false)
