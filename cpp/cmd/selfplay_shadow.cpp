@@ -193,7 +193,7 @@ int main(int argc, const char** argv) {
     threads.emplace_back(work, thread_id % (GPU_EVALUATOR_COUNT + CPU_EVALUATOR_COUNT));
   }
   threads.emplace_back([&]() {
-    while (dataset_id.load() < gen_dataset_count) {
+    while (!stop && dataset_id.load() < gen_dataset_count) {
       std::this_thread::sleep_for(std::chrono::seconds(10));
       for (int i = 0; i < CPU_EVALUATOR_COUNT + GPU_EVALUATOR_COUNT; i++) {
         std::cout << "Evaluator " << i << ": " << evaluators[i]->statistics() << std::endl;
