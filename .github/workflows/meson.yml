@@ -6,7 +6,7 @@ on:
 
 env:
   cmake_version: 3.28.3
-  libtorch_version: 2.2.2  # although 2.3.0 has been released, it brokes on windows
+  libtorch_version: 2.3.1
   cpp_compiler_linux: g++
 
 jobs:
@@ -101,7 +101,7 @@ jobs:
       working-directory: cpp
       run: meson wrap install gtest
 
-    # Currently in 2023, libtorch needs msvc to work. So we compile everything with msvc.
+    # Currently in 2024, libtorch needs msvc to work. So we compile everything with msvc.
     # This action enables msvc environments automatically for github workflow.
     - name: Prepare MSV
       uses: ilammy/msvc-dev-cmd@v1.13.0

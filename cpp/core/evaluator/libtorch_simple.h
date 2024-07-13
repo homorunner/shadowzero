@@ -22,7 +22,13 @@ class LibtorchEvaluator : public EvaluatorBase {
     }
 #endif
     c10::InferenceMode guard;
-    model = torch::jit::load(model_path, device);
+    try {
+      model = torch::jit::load(model_path, device);
+    } catch (const c10::Error& e) {
+      std::cerr << "Error loading the model: " << model_path << std::endl;
+      std::cerr << e.what() << std::endl;
+      exit(1);
+    }
     if (model.is_training()) {
       if (verbose) std::cout << "Warning: Model is in training mode. Calling eval()." << std::endl;
       model.eval();

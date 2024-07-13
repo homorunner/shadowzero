@@ -1,14 +1,14 @@
 #include "core/algorithm/strategy_alphazero.h"
 #include "core/evaluator/libtorch_queued.h"
-#include "game/shadow.h"
+#include "game/connect4.h"
 
 #include "core/util/argh.h"
 
 constexpr bool DEBUG_SHOW_ACTIONS_PER_TURN = false;
 constexpr bool DEBUG_SHOW_GAMEBOARD = false;
 
-constexpr int PLAYOUT_NUM = 2000;
-constexpr int PLAYOUT_CAP_NUM = 180;
+constexpr int PLAYOUT_NUM = 2400;
+constexpr int PLAYOUT_CAP_NUM = 200;
 constexpr float PLAYOUT_CAP_PERCENT = 0.75f;
 constexpr float TEMPERATURE_START = 1.0f;
 constexpr float TEMPERATURE_END = 0.2f;
@@ -18,7 +18,7 @@ constexpr int WORKER_THREADS = 32;
 constexpr int GPU_EVALUATOR_COUNT = 1;
 constexpr int CPU_EVALUATOR_COUNT = 0;
 
-using Game = Shadow::GameState;
+using Game = Connect4::GameState;
 using Algorithm = alphazero::Algorithm<Game, 0>;
 
 auto init_rand() {
@@ -59,11 +59,11 @@ int main(int argc, const char** argv) {
   Algorithm algorithm;
   QueuedLibtorchEvaluator* evaluators[GPU_EVALUATOR_COUNT + CPU_EVALUATOR_COUNT];
   for (int i = 0; i < CPU_EVALUATOR_COUNT; i++) {
-    evaluators[i] = new QueuedLibtorchEvaluator(model, Shadow::CANONICAL_SHAPE,
+    evaluators[i] = new QueuedLibtorchEvaluator(model, Connect4::CANONICAL_SHAPE,
                                                 /*cpu_only=*/true);
   }
   for (int i = CPU_EVALUATOR_COUNT; i < CPU_EVALUATOR_COUNT + GPU_EVALUATOR_COUNT; i++) {
-    evaluators[i] = new QueuedLibtorchEvaluator(model, Shadow::CANONICAL_SHAPE, /*cpu_only=*/false,
+    evaluators[i] = new QueuedLibtorchEvaluator(model, Connect4::CANONICAL_SHAPE, /*cpu_only=*/false,
                                                 /*device_id=*/i - CPU_EVALUATOR_COUNT);
   }
 
@@ -78,20 +78,6 @@ int main(int argc, const char** argv) {
     while (!stop) {
       Game game;
 
-      // there is a 15% chance that current player do a random step
-      if (rand() < 0.15f) {
-        auto valid_moves = game.Valid_moves();
-        std::vector<int> valid_move_indices;
-        for (int i = 0; i < Shadow::NUM_ACTIONS; i++) {
-          if (valid_moves[i]) {
-            valid_move_indices.push_back(i);
-          }
-        }
-        if (!valid_move_indices.empty()) {
-          game.Move(valid_move_indices[std::rand() % valid_move_indices.size()]);
-        }
-      }
-
       float temperature = TEMPERATURE_START;
       int turn;
       std::vector<std::unique_ptr<Algorithm::Context>> contexts;
@@ -101,7 +87,7 @@ int main(int argc, const char** argv) {
         // check if no valid move
         auto valid_moves = game.Valid_moves();
         valid_move_count = 0;
-        for (int i = 0; i < Shadow::NUM_ACTIONS; i++) {
+        for (int i = 0; i < Connect4::NUM_ACTIONS; i++) {
           if (valid_moves[i]) {
             valid_move_count++;
           }
@@ -121,7 +107,7 @@ int main(int argc, const char** argv) {
                       /*force_playout=*/!capped);
         auto action = context->select_move(temperature);
 
-        if (action < 0 || action >= Shadow::NUM_ACTIONS || !valid_moves[action]) {
+        if (action < 0 || action >= Connect4::NUM_ACTIONS || !valid_moves[action]) {
           std::cout << "Invalid move " << action << std::endl;
           stop = true;
           break;
@@ -156,28 +142,30 @@ int main(int argc, const char** argv) {
       }
 
       int n = contexts.size();
-      const int kSymmetry = Shadow::NUM_SYMMETRIES;
+      const int kSymmetry = Connect4::NUM_SYMMETRIES;
       at::Tensor canonical = torch::zeros(
-          {n * kSymmetry, Shadow::CANONICAL_SHAPE[0], Shadow::CANONICAL_SHAPE[1], Shadow::CANONICAL_SHAPE[2]},
+          {n * kSymmetry, Connect4::CANONICAL_SHAPE[0], Connect4::CANONICAL_SHAPE[1], Connect4::CANONICAL_SHAPE[2]},
           torch::kFloat);
-      at::Tensor policy = torch::empty({n * kSymmetry, Shadow::NUM_ACTIONS}, torch::kFloat);
+      at::Tensor policy = torch::empty({n * kSymmetry, Connect4::NUM_ACTIONS}, torch::kFloat);
       at::Tensor values = torch::zeros({n * kSymmetry, 2}, torch::kFloat);
       for (int i = 0; i < n; i++) {
         auto& context = contexts[i];
-        context->game->Canonicalize(canonical.mutable_data_ptr<float>() + i * kSymmetry * Shadow::CANONICAL_SHAPE[0] *
-                                                                              Shadow::CANONICAL_SHAPE[1] *
-                                                                              Shadow::CANONICAL_SHAPE[2]);
-        context->mcts.set_probs(policy.mutable_data_ptr<float>() + i * kSymmetry * Shadow::NUM_ACTIONS,
+        context->game->Canonicalize(canonical.mutable_data_ptr<float>() + i * kSymmetry * Connect4::CANONICAL_SHAPE[0] *
+                                                                              Connect4::CANONICAL_SHAPE[1] *
+                                                                              Connect4::CANONICAL_SHAPE[2]);
+        context->mcts.set_probs(policy.mutable_data_ptr<float>() + i * kSymmetry * Connect4::NUM_ACTIONS,
                                 /*temp=*/1.0f, /*prune_forced_count=*/true);
         values[i * kSymmetry][context->game->Current_player()] = score;
         values[i * kSymmetry][!context->game->Current_player()] = 1.0f - score;
 
-        context->game->create_symmetry_boards(canonical[i * kSymmetry + 1].mutable_data_ptr<float>(),
-                                              canonical[i * kSymmetry].mutable_data_ptr<float>());
-        context->game->create_symmetry_actions(policy[i * kSymmetry + 1].mutable_data_ptr<float>(),
-                                               policy[i * kSymmetry].mutable_data_ptr<float>());
-        context->game->create_symmetry_values(values[i * kSymmetry + 1].mutable_data_ptr<float>(),
-                                              values[i * kSymmetry].mutable_data_ptr<float>());
+        if constexpr (kSymmetry > 1) {
+          context->game->create_symmetry_boards(canonical[i * kSymmetry + 1].mutable_data_ptr<float>(),
+                                                canonical[i * kSymmetry].mutable_data_ptr<float>());
+          context->game->create_symmetry_actions(policy[i * kSymmetry + 1].mutable_data_ptr<float>(),
+                                                policy[i * kSymmetry].mutable_data_ptr<float>());
+          context->game->create_symmetry_values(values[i * kSymmetry + 1].mutable_data_ptr<float>(),
+                                                values[i * kSymmetry].mutable_data_ptr<float>());
+        }
       }
 
       // check for possible nan

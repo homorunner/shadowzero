@@ -22,7 +22,13 @@ class QueuedLibtorchEvaluator : public EvaluatorBase {
     }
 #endif
     c10::InferenceMode guard;
-    model = torch::jit::load(model_path, device);
+    try {
+      model = torch::jit::load(model_path, device);
+    } catch (const c10::Error& e) {
+      std::cerr << "Error loading the model: " << model_path << std::endl;
+      std::cerr << e.what() << std::endl;
+      exit(1);
+    }
     if (model.is_training()) {
       if (verbose) std::cout << "Warning: Model is in training mode. Calling eval()." << std::endl;
       model.eval();
@@ -59,20 +65,20 @@ class QueuedLibtorchEvaluator : public EvaluatorBase {
         }
         input_mutex.lock();
         auto input = torch::from_blob(working_input.data(), {working_input_size, d1, d2, d3});
-        // auto input_guard = torch::from_blob(working_input_guard.data(),
-        //                                     {working_input_size, 1});
+        auto input_guard = torch::from_blob(working_input_guard.data(),
+                                            {working_input_size, 1});
         if (device.is_cpu()) {
           input = input.clone();
-          // input_guard = input_guard.clone();
+          input_guard = input_guard.clone();
         } else {
           input = input.to(device);
-          // input_guard = input_guard.to(device);
+          input_guard = input_guard.to(device);
         }
         std::vector<torch::jit::IValue> inputs = {input};
-        // std::vector<torch::jit::IValue> inputs_guard = {input_guard};
+        std::vector<torch::jit::IValue> inputs_guard = {input_guard};
         total_working_input_size += working_input_size;
         working_input.clear();
-        // working_input_guard.clear();
+        working_input_guard.clear();
         working_input_size = 0;
         working_index += 1;
         job_done[(working_index + 1) % 64] = false;
@@ -84,7 +90,7 @@ class QueuedLibtorchEvaluator : public EvaluatorBase {
         // TODO: move torch::exp to inside the model
         output_v[working_index % 64] = torch::exp(outputs->elements()[0].toTensor()).cpu();
         output_pi[working_index % 64] = torch::exp(outputs->elements()[1].toTensor()).cpu();
-        // output_guard[working_index % 64] = inputs_guard[0].toTensor().cpu();
+        output_guard[working_index % 64] = inputs_guard[0].toTensor().cpu();
         job_done[working_index % 64] = true;
         job_done[working_index % 64].notify_all();
       }
@@ -107,26 +113,26 @@ class QueuedLibtorchEvaluator : public EvaluatorBase {
       working_input.resize((working_input_size + 1) * dx, 0);
       canonicalize(working_input.data() + working_input_size * dx);
       working_input_size += 1;
-      // float guard_val = randn(10086);
-      // working_input_guard.push_back(guard_val);
+      float guard_val = randn(10086);
+      working_input_guard.push_back(guard_val);
       uint8_t my_index_ = (working_index + 1) % 64;
       input_mutex.unlock();
 
       job_done[my_index_].wait(false);
 
-      // if (output_v[my_index_].size(0) < current_size) {
-      //   std::cerr << "Output size mismatch!" << std::endl;
-      //   continue;
-      // }
-      // if (output_guard[my_index_].size(0) < current_size) {
-      //   std::cerr << "Guard size mismatch!" << std::endl;
-      //   continue;
-      // }
-      // if (auto g = output_guard[my_index_][current_size].item<float>();
-      //     g != guard_val) {
-      //   std::cerr << "Guard value mismatch!" << g << guard_val << std::endl;
-      //   continue;
-      // }
+      if (output_v[my_index_].size(0) < current_size) {
+        std::cerr << "Output size mismatch!" << std::endl;
+        continue;
+      }
+      if (output_guard[my_index_].size(0) < current_size) {
+        std::cerr << "Guard size mismatch!" << std::endl;
+        continue;
+      }
+      if (auto g = output_guard[my_index_][current_size].item<float>();
+          g != guard_val) {
+        std::cerr << "Guard value mismatch!" << g << guard_val << std::endl;
+        continue;
+      }
       process_result(output_pi[my_index_][current_size].data_ptr<float>(),
                      output_v[my_index_][current_size].data_ptr<float>());
       break;
@@ -174,9 +180,9 @@ class QueuedLibtorchEvaluator : public EvaluatorBase {
   std::atomic<bool> job_done[64];
   std::vector<float> working_input;
   volatile int working_input_size;
-  // std::vector<float> working_input_guard; // debug only
+  std::vector<float> working_input_guard; // debug only
   torch::Tensor output_pi[64], output_v[64];
-  // torch::Tensor output_guard[64];  // debug only
+  torch::Tensor output_guard[64];  // debug only
 
   std::unique_ptr<std::thread> eval_thread;
   std::atomic<bool> stop_eval;

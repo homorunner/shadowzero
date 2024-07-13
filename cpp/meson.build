@@ -1,5 +1,5 @@
 project(
-  'dgo',
+  'shadowzero',
   'cpp',
   version : '0.0.1',
   default_options : [
@@ -109,9 +109,23 @@ selfplay_shadow = executable(
 	link_args: link_args,
 )
 
+selfplay_connect4 = executable(
+  'selfplay_connect4',
+  'cmd/selfplay_connect4.cpp',
+  dependencies : [torch_dep, torch_cpu_dep, torch_cuda_dep, c10_dep],
+	link_args: link_args,
+)
+
 gate_shadow = executable(
   'gate_shadow',
   'cmd/gate_shadow.cpp',
+  dependencies : [torch_dep, torch_cpu_dep, torch_cuda_dep, c10_dep],
+	link_args: link_args,
+)
+
+gate_connect4 = executable(
+  'gate_connect4',
+  'cmd/gate_connect4.cpp',
   dependencies : [torch_dep, torch_cpu_dep, torch_cuda_dep, c10_dep],
 	link_args: link_args,
 )
@@ -126,6 +140,13 @@ gate_shadow_cpuct = executable(
 shadow = executable(
   'shadow',
   'cmd/game_shadow.cpp',
+  dependencies : [torch_dep, torch_cpu_dep, torch_cuda_dep, c10_dep],
+	link_args: link_args,
+)
+
+connect4 = executable(
+  'connect4',
+  'cmd/game_connect4.cpp',
   dependencies : [torch_dep, torch_cpu_dep, torch_cuda_dep, c10_dep],
 	link_args: link_args,
 )

@@ -43,8 +43,6 @@ void sort4(int8_t* arr) {
   if (arr[1] > arr[2]) std::swap(arr[1], arr[2]);
 }
 
-using ActionType = Shadow::ActionType;
-
 class GameState {
  private:
   bool current_player;
@@ -264,7 +262,7 @@ class GameState {
     return false;
   }
 
-  float Winner() const {
+  bool Winner() const {
     for (int i = 0; i < 2; i++) {
       for (int j = 0; j < 16; j += 4) {
         if (piece[i][j] == CAPTURED && piece[i][j + 1] == CAPTURED && piece[i][j + 2] == CAPTURED &&
