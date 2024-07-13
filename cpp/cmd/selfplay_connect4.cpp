@@ -9,7 +9,7 @@ constexpr bool DEBUG_SHOW_GAMEBOARD = false;
 
 constexpr int PLAYOUT_NUM = 2400;
 constexpr int PLAYOUT_CAP_NUM = 200;
-constexpr float PLAYOUT_CAP_PERCENT = 0.75f;
+constexpr float PLAYOUT_CAP_PERCENT = 0.66f;
 constexpr float TEMPERATURE_START = 1.0f;
 constexpr float TEMPERATURE_END = 0.2f;
 constexpr float TEMPERATURE_LAMBDA = -0.01f;

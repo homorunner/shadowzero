@@ -10,7 +10,7 @@ constexpr const int K = 4;
 
 constexpr const int NUM_ACTIONS = 25;
 constexpr const int NUM_PLAYERS = 2;
-constexpr const int NUM_SYMMETRIES = 1;
+constexpr const int NUM_SYMMETRIES = 2;
 
 constexpr const std::array<int, 3> CANONICAL_SHAPE = {N, N + 1, N * 2};
 
@@ -36,12 +36,12 @@ class GameState {
 
   std::string action_to_string(const ActionType action) {
     if (action == MOVE_PASS) return "pass";
-    return std::string(1, 'a' + action / N) + (char)('1' + action % N);
+    return std::string(1, 'a' + action % N) + (char)('1' + action / N);
   }
 
   ActionType string_to_action(const std::string& action) {
     if (action == "pass") return MOVE_PASS;
-    return (action[0] - 'a') * N + (action[1] - '1');
+    return (action[0] - 'a') + (action[1] - '1') * N;
   }
 
   std::unique_ptr<GameState> Copy() const {
@@ -164,7 +164,7 @@ class GameState {
 
     for (int i = 0; i < N; i++) {
       for (int j = 0; j < N; j++) {
-        out += (char)('1' + j);
+        out += (char)('a' + j);
       }
       out += '\n';
       for (int j = 0; j < N; j++) {
@@ -172,7 +172,7 @@ class GameState {
           out += piece[i][j][k][0] ? 'X' : (piece[i][j][k][1] ? 'O' : '.');
         }
         out += ' ';
-        out += (char)('a' + j);
+        out += (char)('1' + j);
         out += '\n';
       }
       out += '\n';
@@ -180,18 +180,49 @@ class GameState {
 
     out += "Player: ";
     out += (current_player ? 'X' : 'O');
-    out += "\n";
 
     return out;
   }
 
   void create_symmetry_values(float* dst, const float* src) const {
+    for (int i = 0; i < NUM_SYMMETRIES; i++) {
+      for (int j = 0; j < 2; j++) {
+        dst[i * 2 + j] = src[j];
+      }
+    }
   }
 
   void create_symmetry_board(float* dst, const float* src) const {
+    // if we change the shape, we need to update this function
+    assert(CANONICAL_SHAPE[0] == N && CANONICAL_SHAPE[1] == N + 1 &&
+           CANONICAL_SHAPE[2] == N * 2);
+
+    float(&out)[N][N+1][N * 2] = *reinterpret_cast<float(*)[N][N+1][N * 2]>(dst);
+    const float(&in)[N][N+1][N * 2] = *reinterpret_cast<const float(*)[N][N+1][N * 2]>(src);
+
+    for (int i = 0; i < N; i++) {
+      for (int j = 0; j < N; j++) {
+        for (int k = 0; k < N; k++) {
+          out[i][j][k] = in[i][k][j];
+          out[i][j][k + N] = in[i][k][j + N];
+        }
+      }
+      for (int k = 0; k < N * 2; k++) {
+        out[i][N][k] = in[i][N][k];
+      }
+    }
   }
 
   void create_symmetry_action(float* dst, const float* src) const {
+    // if we change the shape, we need to update this function
+    assert(CANONICAL_SHAPE[0] == N && CANONICAL_SHAPE[1] == N + 1 &&
+           CANONICAL_SHAPE[2] == N * 2);
+    
+    for (int i = 0; i < N; i++) {
+      for (int j = 0; j < N; j++) {
+        dst[i * N + j] = src[j * N + i];
+      }
+    }
   }
 
   void create_symmetry_boards(float* dst, const float* src) const {
