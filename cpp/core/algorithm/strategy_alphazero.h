@@ -248,33 +248,33 @@ class MCTS {
       auto* parent = path_.back();
       path_.pop_back();
       auto v = value(parent->player);
-      if (current_->ended) {
-        current_->q = v;
+      // if (current_->ended) {
+      //   current_->q = v;
 
-        double max_value = std::numeric_limits<float>::min();
-        int max_move;
-        bool all_ended = true;
-        for (auto& child : parent->children) {
-          if (!child.ended) {
-            all_ended = false;
-          } else if (child.value(parent->player) > max_value) {
-            max_value = child.value(parent->player);
-            max_move = child.move;
-          }
-        }
-        if (all_ended || max_value > 0.999) {
-          parent->ended = true;
-          parent->value = ValueType(parent->player, max_value);
-          if (parent == &root_) {
-            winning_move_ = max_move;
-          }
-        }
-      } else {
+      //   double max_value = std::numeric_limits<float>::min();
+      //   int max_move;
+      //   bool all_ended = true;
+      //   for (auto& child : parent->children) {
+      //     if (!child.ended) {
+      //       all_ended = false;
+      //     } else if (child.value(parent->player) > max_value) {
+      //       max_value = child.value(parent->player);
+      //       max_move = child.move;
+      //     }
+      //   }
+      //   if (all_ended || max_value > 0.999) {
+      //     parent->ended = true;
+      //     parent->value = ValueType(parent->player, max_value);
+      //     if (parent == &root_) {
+      //       winning_move_ = max_move;
+      //     }
+      //   }
+      // } else {
         current_->q = (current_->q * current_->n + v) / (current_->n + 1);
         if (current_->n == 0) {
           current_->v = value(current_->player);
         }
-      }
+      // }
       ++current_->n;
       current_ = parent;
     }
@@ -442,7 +442,7 @@ class MCTS {
 template <class GameState, int SpecThreadCount>
 class Algorithm {
  public:
-  Algorithm(float cpuct_ = CPUCT, float fpu_reduction_ = FPU_REDUCTION, bool precalc_ = true)
+  Algorithm(float cpuct_ = CPUCT, float fpu_reduction_ = FPU_REDUCTION, bool precalc_ = false)
       : cpuct(cpuct_), fpu_reduction(fpu_reduction_), precalc(precalc_) {}
 
   struct Context {

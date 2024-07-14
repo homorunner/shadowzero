@@ -115,7 +115,7 @@ int main(int argc, const char** argv) {
 
         game.Move(action);
 
-        if (!capped && !context->is_ended_state()) {
+        if (!capped) { // && !context->is_ended_state()) {
           contexts.emplace_back(std::move(context));
         }
 
