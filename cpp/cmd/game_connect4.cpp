@@ -27,7 +27,7 @@ void interactive(const char* model) {
           int iter = 0;
           puts("Thinking...");
           for (; !stop.load(); iter++) {
-            context->step(64, /*root_noise_enabled=*/true);
+            context->step(320, /*root_noise_enabled=*/true);
             context->show_actions(5, /*move_up_cursor=*/!!iter);
           }
         });

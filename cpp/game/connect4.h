@@ -175,7 +175,6 @@ class GameState {
         out += (char)('1' + j);
         out += '\n';
       }
-      out += '\n';
     }
 
     out += "Player: ";

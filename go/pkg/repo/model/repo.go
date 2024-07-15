@@ -32,6 +32,8 @@ func (r *Repo) Handle(ctx context.Context, action string, args []string) {
 		r.newbest(ctx, args)
 	case "getbest":
 		r.getbest(ctx, args)
+	case "delete":
+		r.delete(ctx, args)
 	}
 }
 
@@ -125,7 +127,7 @@ func (r *Repo) getbest(ctx context.Context, args []string) {
 	}
 
 	bestFile := args[0]
-	
+
 	file, err := os.OpenFile(bestFile, os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		log.Fatal(err)
@@ -145,3 +147,29 @@ func (r *Repo) getbest(ctx context.Context, args []string) {
 	log.Print("write best model to ", bestFile)
 }
 
+func (r *Repo) delete(ctx context.Context, args []string) {
+	if len(args) < 1 {
+		log.Fatal("not enough arguments for delete")
+	}
+
+	modelFile := args[0]
+	modelName := filepath.Base(modelFile)
+
+	var id int
+	err := r.db.QueryRow(ctx, "SELECT id FROM models WHERE name = $1", modelName).Scan(&id)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	_, err = r.db.Exec(ctx, "DELETE FROM models WHERE name = $1", modelName)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	_, err = r.db.Exec(ctx, "DELETE FROM gatingresult WHERE p1 = $1 or p2 = $1", modelName)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	log.Print("delete model from db ok. id = ", id)
+}
