@@ -30,8 +30,8 @@ int main(int argc, const char** argv) {
   }
 
   Algorithm* zero[2];
-  zero[0] = new Algorithm(3.0f, 0.25f, true);
-  zero[1] = new Algorithm(3.0f, 0.25f, false);
+  zero[0] = new Algorithm(3.0f, 0.25f);
+  zero[1] = new Algorithm(3.0f, 0.25f);
   QueuedLibtorchEvaluator evaluator(model, Shadow::CANONICAL_SHAPE,
                                     /*use_cpu_only=*/false);
 
