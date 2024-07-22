@@ -31,9 +31,8 @@ CREATE TABLE public.gatingresult (
 CREATE TABLE public.dataset (
     id int generated always as identity primary key,
     train_id text not null,
-    c bytea,
-    v bytea,
-    p bytea,
-    created_at timestamp without time zone default now() not null
+    c bytea COMPRESSION lz4,
+    v bytea COMPRESSION lz4,
+    p bytea COMPRESSION lz4
 );
 

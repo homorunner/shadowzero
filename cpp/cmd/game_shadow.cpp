@@ -14,11 +14,6 @@ void interactive(const char* model) {
   start:;
     std::cout << game->ToString() << "\n";
     auto valid_moves = game->Valid_moves();
-    for (int i = 0; i < game->Num_actions(); i++) {
-      if (valid_moves[i]) {
-        std::cout << game->action_to_string(i) << " ";
-      }
-    }
     Shadow::ActionType action;
     auto context = algorithm.compute(*game, evaluator);
     while (true) {

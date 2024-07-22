@@ -29,8 +29,8 @@ if [[ $START == "new" ]]; then
 fi
 
 if [[ $START == "from_current" ]]; then
-    FROM_MODEL_FILE=${3:?Usage: $0 <game> from_current <model_file> <pt_file>}
-    FROM_PT_FILE=${4:?Usage: $0 <game> from_current <model_file> <pt_file>}
+    FROM_MODEL_FILE=${3:?Usage: $0 <game> from_current <pt_file> <model_file>}
+    FROM_PT_FILE=${4:?Usage: $0 <game> from_current <pt_file> <model_file>}
     CURRENT_MODEL_FILE="$CHECKPOINT_PATH/0000-${GAME}_traced.pt"
     CURRENT_PT_FILE="$CHECKPOINT_PATH/0000-${GAME}.pt"
     START=0

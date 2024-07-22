@@ -324,7 +324,7 @@ class GameState {
     float* linear = &out[24][0][0];
     linear[0] = (round / 12) % 2 ? 1.0f : 0.0f;
     for (int i = 1; i < 12; i++) {
-      linear[i] = round % 12 >= i ? 1.0f : 0.0f;
+      linear[i] = round % 12 >= i ? 1.0f : 0.0f; // TODO: maybe accelerated a little bit here, because initial value is 0
     }
     linear[12] = capture_count[current_player];
     linear[13] = capture_count[!current_player];
