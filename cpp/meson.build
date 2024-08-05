@@ -3,6 +3,7 @@ project(
   'cpp',
   version : '0.0.1',
   default_options : [
+    'b_ndebug=if-release',
     'cpp_std=c++23,c++latest'
   ]
 )

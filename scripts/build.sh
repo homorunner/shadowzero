@@ -23,7 +23,7 @@ fi
 # meson setup -Dcpp_args="-march=native -Wno-unknown-pragmas" -Duse_cuda=$USE_CUDA ../build --buildtype=debugoptimized
 
 # Release
-meson setup -Dcpp_args="-ffast-math -march=native -Wno-unknown-pragmas -DNDEBUG" -Db_lto=true -Duse_cuda=$USE_CUDA ../build --buildtype=release
+meson setup -Dcpp_args="-ffast-math -march=native -Wno-unknown-pragmas" -Db_lto=true -Duse_cuda=$USE_CUDA ../build --buildtype=release
 
 meson compile -C ../build
 
