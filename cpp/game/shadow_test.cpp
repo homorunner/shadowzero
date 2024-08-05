@@ -516,7 +516,7 @@ TEST(GameShadow, TestSymmetryAction2) {
   GameState game2;
   game2.Move(game2.string_to_action("5adr"));
   game2.Move(game2.string_to_action("5aul"));
-  for (int i = 0; i < 12; i++) game.Move(MOVE_PASS);
+  for (int i = 0; i < 12; i++) game2.Move(MOVE_PASS);
 
   float actions[NUM_ACTIONS] = {0};
   for (int i = 0; i < NUM_ACTIONS; i++) {

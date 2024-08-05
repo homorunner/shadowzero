@@ -78,7 +78,7 @@ int main(int argc, const char** argv) {
     while (!stop) {
       Game game;
 
-      // there is a 15% chance that current player do a random step
+      // there is a 15% chance that the first player do a random step
       if (rand() < 0.15f) {
         auto valid_moves = game.Valid_moves();
         std::vector<int> valid_move_indices;
