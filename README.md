@@ -1,4 +1,4 @@
-# DDT
+# ShadowZero
 
 Implementation of several algorithms that solves two player zero-sum games.
 
